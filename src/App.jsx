@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PlusIcon,
   CalendarIcon,
@@ -40,10 +40,28 @@ const exportToTextFile = (data) => {
 };
 
 const App = () => {
-  const [days, setDays] = useState([]);
+  // Carga inicial de datos desde localStorage
+  const [days, setDays] = useState(() => {
+    const savedData = localStorage.getItem('financialData');
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      // Convierte las fechas de cadena a objetos Date
+      return parsedData.map(day => ({
+        ...day,
+        date: new Date(day.date)
+      }));
+    }
+    return [];
+  });
+
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedDays, setExpandedDays] = useState({});
+
+  // Guarda los datos en localStorage cuando cambian
+  useEffect(() => {
+    localStorage.setItem('financialData', JSON.stringify(days));
+  }, [days]);
 
   const addDay = () => {
     setShowDateModal(true);
@@ -101,6 +119,15 @@ const App = () => {
     exportToTextFile(days);
   };
 
+  // Función para borrar todos los datos
+  const clearAllData = () => {
+    const confirmClear = window.confirm('¿Estás seguro de borrar todos los datos? Esta acción no se puede deshacer.');
+    if (confirmClear) {
+      setDays([]);
+      localStorage.removeItem('financialData');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
@@ -131,6 +158,14 @@ const App = () => {
         >
           <CalendarIcon className="mr-2" /> Gestionar Hoy
         </button>
+        {days.length > 0 && (
+          <button
+            onClick={clearAllData}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <TrashIcon className="mr-2" /> Borrar Datos
+          </button>
+        )}
       </div>
 
       {days.map((day, dayIndex) => (
@@ -150,7 +185,6 @@ const App = () => {
           {expandedDays[dayIndex] && (
             <div className="p-4">
               <div className="grid md:grid-cols-2 gap-6">
-
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-bold text-gray-700">Gastos</h3>
@@ -199,8 +233,6 @@ const App = () => {
                     />
                   ))}
                 </div>
-
-
               </div>
 
               <DaySummary day={day} />

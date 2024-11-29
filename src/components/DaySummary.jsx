@@ -7,7 +7,7 @@ export const DaySummary = ({ day }) => {
   const formatPaymentType = (type) => type || 'Sin tipo';
 
   return (
-    <div className="mt-6 p-4 bg-blue-50 rounded-lg max-w-80 m-auto">
+    <div className="mt-6 p-4 bg-blue-50 rounded-lg sm-max-w-80 m-auto">
       <h3 className="font-bold mb-3 text-gray-800">Resumen del Día</h3>
       
       <div className="grid md:grid-cols-3 gap-4 mb-4">
