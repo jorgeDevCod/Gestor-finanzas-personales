@@ -66,28 +66,33 @@ const App = () => {
   const confirmDateAndAddDay = () => {
     // Crear la fecha seleccionada con la hora establecida a la medianoche
     const selectedDateTime = new Date(selectedDate);
+    
+    // Ajustar la zona horaria para evitar problemas de desplazamiento
     selectedDateTime.setHours(0, 0, 0, 0);
-
+    
+    // Corregir el desplazamiento de fecha
+    selectedDateTime.setDate(selectedDateTime.getDate() + 1);
+  
     // Obtener la fecha actual del dispositivo
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-
+  
     // Verificar si la fecha seleccionada es posterior a la fecha actual
     if (selectedDateTime > currentDate) {
       alert('No puedes agregar una fecha futura.');
       return;
     }
-
+  
     // Verificar si la fecha ya existe en los registros
     const dateExists = days.some(day => 
       day.date.toISOString().split('T')[0] === selectedDateTime.toISOString().split('T')[0]
     );
-
+  
     if (dateExists) {
       alert('Ya existe un registro para esta fecha.');
       return;
     }
-
+  
     setDays([...days, {
       date: selectedDateTime,
       incomes: [{ name: '', amount: '', paymentType: '' }],
