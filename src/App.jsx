@@ -1,117 +1,134 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PlusIcon,
   CalendarIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   TrashIcon,
-  FileTextIcon
+  FileTextIcon,
+  SettingsIcon,
 } from 'lucide-react';
 
 import { FEATURES } from './utils/constants';
 import { FeatureCard } from './components/FeatureCard';
 import { IncomeExpenseRow } from './components/IncomeExpenseRow';
 import { DaySummary } from './components/DaySummary';
+import { ModeSelector } from './components/ModeSelector';
+import { BalanceOverview } from './components/BalanceOverview';
 import { exportToTextFile } from './utils/exportUtils';
 
+/* ─── ETIQUETAS POR MODO ────────────────────────────────── */
+/** @type {Record<string, {label: string, incomeSection: string, subtitle: string}>} */
+const MODE_CONFIG = {
+  daily:    {
+    label: 'Diario',
+    incomeSection: 'Ingresos',
+    subtitle: 'Registra y organiza tus ingresos y gastos personales día a día. Mantén el control de tu presupuesto y mejora tus hábitos financieros con un seguimiento detallado.',
+  },
+  biweekly: {
+    label: 'Quincenal',
+    incomeSection: 'Ingresos adicionales',
+    subtitle: 'Controla tus gastos e ingresos adicionales sobre tu salario quincenal. Visualiza cuánto dinero te queda disponible en cada quincena.',
+  },
+  monthly:  {
+    label: 'Mensual',
+    incomeSection: 'Ingresos adicionales',
+    subtitle: 'Gestiona tus gastos e ingresos extras sobre tu salario mensual. Monitorea tu balance y evita gastar más de lo que recibes cada mes.',
+  },
+};
+
 const App = () => {
-  // Carga inicial de datos desde localStorage con corrección de fecha
+  /* ── Estado principal ─────────────────────────────────── */
   const [days, setDays] = useState(() => {
     const savedData = localStorage.getItem('financialData');
     if (savedData) {
       const parsedData = JSON.parse(savedData);
-      // Convierte las fechas de cadena a objetos Date con corrección de zona horaria
       return parsedData.map(day => ({
         ...day,
-        date: new Date(new Date(day.date).toDateString())
+        date: new Date(new Date(day.date).toDateString()),
       }));
     }
     return [];
   });
 
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [expandedDays, setExpandedDays] = useState({});
+  /* ── Modo y salario ───────────────────────────────────── */
+  const [appMode, setAppMode] = useState(() => localStorage.getItem('appMode') || null);
+  const [baseSalary, setBaseSalary] = useState(() => {
+    const saved = localStorage.getItem('baseSalary');
+    return saved ? parseFloat(saved) : 0;
+  });
+  const [showModeSelector, setShowModeSelector] = useState(false);
 
-  // Guarda los datos en localStorage cuando cambian
+  /* ── UI ───────────────────────────────────────────────── */
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [selectedDate, setSelectedDate]   = useState(new Date().toISOString().split('T')[0]);
+  const [expandedDays, setExpandedDays]   = useState({});
+
+  /* ── Persistencia ─────────────────────────────────────── */
   useEffect(() => {
     localStorage.setItem('financialData', JSON.stringify(days));
   }, [days]);
 
-  const addDay = () => {
-    setShowDateModal(true);
+  /* ── Cálculos globales ────────────────────────────────── */
+  const totalAllIncomes = days.reduce(
+    (sum, day) => sum + day.incomes.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0),
+    0
+  );
+  const totalAllExpenses = days.reduce(
+    (sum, day) => sum + day.expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0),
+    0
+  );
+
+  /* ── Handlers de modo ─────────────────────────────────── */
+  const handleModeConfirm = (mode, salary) => {
+    setAppMode(mode);
+    setBaseSalary(salary);
+    localStorage.setItem('appMode', mode);
+    localStorage.setItem('baseSalary', String(salary));
+    setShowModeSelector(false);
   };
+
+  const handleEditSalary = () => setShowModeSelector(true);
+
+  /* ── Handlers de días ─────────────────────────────────── */
+  const addDay = () => setShowDateModal(true);
 
   const addTodayDay = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // Verificar si ya existe un registro para hoy
-    const dateExists = days.some(day =>
-      day.date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+    const dateExists = days.some(
+      day => day.date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
     );
-
-    if (dateExists) {
-      alert('Ya existe un registro para hoy.');
-      return;
-    }
-
+    if (dateExists) { alert('Ya existe un registro para hoy.'); return; }
     setDays([...days, {
       date: today,
-      incomes: [{ name: '', amount: '', paymentType: '' }],
-      expenses: [{ name: '', amount: '', paymentType: '' }]
+      incomes:  [{ name: '', amount: '', paymentType: '' }],
+      expenses: [{ name: '', amount: '', paymentType: '' }],
     }]);
   };
 
   const confirmDateAndAddDay = () => {
-    // Crear la fecha seleccionada con la hora establecida a la medianoche
     const selectedDateTime = new Date(selectedDate);
-
-    // Ajustar la zona horaria para evitar problemas de desplazamiento
     selectedDateTime.setHours(0, 0, 0, 0);
-
-    // Corregir el desplazamiento de fecha
     selectedDateTime.setDate(selectedDateTime.getDate() + 1);
-
-    // Obtener la fecha actual del dispositivo
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-
-    // Verificar si la fecha seleccionada es posterior a la fecha actual
-    if (selectedDateTime > currentDate) {
-      alert('No puedes agregar una fecha futura.');
-      return;
-    }
-
-    // Verificar si la fecha ya existe en los registros
-    const dateExists = days.some(day =>
-      day.date.toISOString().split('T')[0] === selectedDateTime.toISOString().split('T')[0]
+    if (selectedDateTime > currentDate) { alert('No puedes agregar una fecha futura.'); return; }
+    const dateExists = days.some(
+      day => day.date.toISOString().split('T')[0] === selectedDateTime.toISOString().split('T')[0]
     );
-
-    if (dateExists) {
-      alert('Ya existe un registro para esta fecha.');
-      return;
-    }
-
+    if (dateExists) { alert('Ya existe un registro para esta fecha.'); return; }
     setDays([...days, {
       date: selectedDateTime,
-      incomes: [{ name: '', amount: '', paymentType: '' }],
-      expenses: [{ name: '', amount: '', paymentType: '' }]
+      incomes:  [{ name: '', amount: '', paymentType: '' }],
+      expenses: [{ name: '', amount: '', paymentType: '' }],
     }]);
     setShowDateModal(false);
   };
 
-  const removeDay = (dayIndex) => {
-    const newDays = days.filter((_, index) => index !== dayIndex);
-    setDays(newDays);
-  };
-
-  const toggleDayExpansion = (dayIndex) => {
-    setExpandedDays(prev => ({
-      ...prev,
-      [dayIndex]: !prev[dayIndex]
-    }));
-  };
+  const removeDay    = dayIndex => setDays(days.filter((_, i) => i !== dayIndex));
+  const toggleExpand = dayIndex =>
+    setExpandedDays(prev => ({ ...prev, [dayIndex]: !prev[dayIndex] }));
 
   const updateDayItem = (dayIndex, type, rowIndex, field, value) => {
     const newDays = [...days];
@@ -131,186 +148,386 @@ const App = () => {
     setDays(newDays);
   };
 
-  const handleExportResults = () => {
-    exportToTextFile(days);
-  };
+  const handleExportResults = () => exportToTextFile(days);
 
   const clearAllData = () => {
-    const confirmClear = window.confirm('¿Estás seguro de borrar todos los datos? Esta acción no se puede deshacer.');
-    if (confirmClear) {
+    if (window.confirm('¿Borrar todos los registros de días? El modo y salario base se conservan.')) {
       setDays([]);
       localStorage.removeItem('financialData');
     }
   };
 
+  /* ── Configuración del modo activo ──────────────────────── */
+  const modeConfig    = MODE_CONFIG[appMode ?? 'daily'] ?? MODE_CONFIG['daily'];
+  const incomeSection = modeConfig.incomeSection;
+  const isSalaryMode  = appMode === 'biweekly' || appMode === 'monthly';
+
+  /* ── Renderizado ─────────────────────────────────────────── */
+
+  if (!appMode || showModeSelector) {
+    return (
+      <ModeSelector
+        onConfirm={handleModeConfirm}
+        isChanging={!!appMode && showModeSelector}
+      />
+    );
+  }
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 bg-gray-50 min-h-screen">
-      <div className="text-center mb-10 bg-white shadow-md rounded-lg p-6">
-        <h1 className="text-4xl font-bold mb-3 text-blue-700 tracking-tight leading-tight font-['Inter']">
-          Gestor de Finanzas Personales
-        </h1>
-        <p className="text-gray-600 max-w-xl mx-auto text-lg font-['Inter'] font-light leading-relaxed">
-          Administra tus ingresos y gastos de manera intuitiva y organizada
-        </p>
-      </div>
+    <div className="max-w-6xl mx-auto px-6 sm:px-10 py-12 lg:py-20">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-        {FEATURES.map((feature, index) => (
-          <FeatureCard key={index} {...feature} />
-        ))}
-      </div>
+      {/* ══ HEADER ══════════════════════════════════════════ */}
+      <header className="mb-14 animate-fade-up">
 
-      <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-10 px-4">
-        <button
-          onClick={addDay}
-          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center justify-center transition-colors shadow-md "
-        >
-          <CalendarIcon className="mr-2" /> Agregar Día
-        </button>
-        <button
-          onClick={addTodayDay}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center justify-center transition-colors shadow-md"
-        >
-          <CalendarIcon className="mr-2" /> Gestionar Hoy
-        </button>
-        {days.length > 0 && (
+        {/* Indicador de modo */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <span
+              style={{
+                display: 'inline-block',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'var(--color-lime)',
+                boxShadow: '0 0 8px rgba(122,191,142,0.5)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="font-display font-semibold uppercase"
+              style={{
+                fontSize: 11,
+                color: 'var(--color-lime)',
+                letterSpacing: '0.1em',
+              }}
+            >
+              Modo {modeConfig.label}
+            </span>
+          </div>
+
           <button
-            onClick={clearAllData}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg flex items-center justify-center transition-colors shadow-md"
+            onClick={() => setShowModeSelector(true)}
+            className="btn-ghost"
+            style={{ padding: '7px 16px', fontSize: 12.5 }}
           >
-            <TrashIcon className="mr-2" /> Borrar Datos
+            <SettingsIcon size={13} />
+            Cambiar modo
+          </button>
+        </div>
+
+        {/* Título */}
+        <h1
+          className="font-display font-extrabold mb-4"
+          style={{
+            fontSize: 'clamp(2.2rem, 5.5vw, 4.4rem)',
+            color: 'var(--color-text)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.12,
+          }}
+        >
+          Gestor de{' '}
+          <span className="glow-lime" style={{ color: 'var(--color-lime)' }}>
+            Finanzas
+          </span>
+        </h1>
+
+        {/* Subtítulo enriquecido */}
+        <p
+          className="font-body"
+          style={{
+            fontSize: 'clamp(0.92rem, 2vw, 1.08rem)',
+            color: 'var(--color-text-sec)',
+            maxWidth: 580,
+            lineHeight: 1.75,
+          }}
+        >
+          {modeConfig.subtitle}
+        </p>
+      </header>
+
+      {/* ══ PANEL DE BALANCE (modos salario) ════════════════ */}
+      {isSalaryMode && (
+        <BalanceOverview
+          mode={appMode}
+          baseSalary={baseSalary}
+          totalIncomes={totalAllIncomes}
+          totalExpenses={totalAllExpenses}
+          onEditSalary={handleEditSalary}
+        />
+      )}
+
+      {/* FEATURE CARDS (solo modo diario, cuando no hay días) */}
+      {appMode === 'daily' && days.length === 0 && (
+        <section
+          aria-label="Características de la aplicación"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12 animate-fade-up delay-100"
+        >
+          {FEATURES.map((feature, index) => (
+            <FeatureCard key={index} {...feature} />
+          ))}
+        </section>
+      )}
+
+      {/* BOTONES DE ACCIÓN */}
+      <div className="flex flex-wrap gap-4 mb-12 animate-fade-up delay-200">
+        <button className="btn-lime" onClick={addDay}>
+          <CalendarIcon size={15} />
+          Agregar Día
+        </button>
+
+        <button className="btn-ghost" onClick={addTodayDay}>
+          <CalendarIcon size={15} />
+          Gestionar Hoy
+        </button>
+
+        {days.length > 0 && (
+          <button className="btn-danger" onClick={clearAllData}>
+            <TrashIcon size={15} />
+            Borrar Registros
           </button>
         )}
       </div>
 
+      {/* ══ ESTADO VACÍO ═════════════════════════════════════ */}
       {days.length === 0 && (
-        <div className="text-center py-10 bg-white shadow-md rounded-lg">
-          <p className="text-gray-500 text-xl font-['Inter'] font-light text-center leading-relaxed">
-            No hay registros financieros. ¡Comienza agregando un día!
+        <div
+          className="animate-fade-up delay-300"
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px dashed var(--color-border)',
+            borderRadius: 20,
+            padding: '72px 48px',
+            textAlign: 'center',
+          }}
+        >
+          <p
+            className="font-display font-bold mb-3"
+            style={{ fontSize: 40, color: 'var(--color-border-2)', letterSpacing: '-0.02em' }}
+          >
+            ◈
+          </p>
+          <p
+            className="font-body mb-3"
+            style={{ fontSize: 16, color: 'var(--color-text-sec)', lineHeight: 1.7 }}
+          >
+            No hay registros.{' '}
+            <span style={{ color: 'var(--color-text)' }}>
+              Agrega tu primer día para comenzar.
+            </span>
+          </p>
+          <p
+            className="font-body"
+            style={{
+              fontSize: 13.5,
+              color: 'var(--color-text-ter)',
+              lineHeight: 1.8,
+              maxWidth: 520,
+              margin: '0 auto',
+            }}
+          >
+            Con este gestor de finanzas personales podrás llevar un registro detallado
+            de tus ingresos y gastos, analizar tu balance diario y exportar tus datos
+            cuando lo necesites.
           </p>
         </div>
       )}
 
-      {days.map((day, dayIndex) => (
-        <div key={dayIndex} className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 mb-6">
-          <div className="flex justify-between items-center p-4 bg-blue-100">
+      {/* ══ REGISTROS DE DÍAS ════════════════════════════════ */}
+      <div className="flex flex-col gap-5">
+        {days.map((day, dayIndex) => (
+          <div
+            key={dayIndex}
+            className="day-row animate-fade-up"
+            style={{ animationDelay: `${dayIndex * 55}ms` }}
+          >
+            {/* Cabecera del día */}
             <div
-              onClick={() => toggleDayExpansion(dayIndex)}
-              className="flex items-center cursor-pointer hover:text-blue-700 transition-colors"
+              className="day-header"
+              onClick={() => toggleExpand(dayIndex)}
+              style={{
+                borderBottom: expandedDays[dayIndex]
+                  ? '1px solid var(--color-border)'
+                  : 'none',
+              }}
             >
-              {expandedDays[dayIndex] ? <ChevronDownIcon /> : <ChevronRightIcon />}
-              <h2 className="text-xl font-semibold ml-2 text-gray-800 font-['Inter'] tracking-tight">
-                {day.date.toLocaleDateString('es-ES', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </h2>
-            </div>
-            <button
-              onClick={() => removeDay(dayIndex)}
-              className="text-red-600 hover:text-red-800 transition-colors"
-            >
-              <TrashIcon size={24} />
-            </button>
-          </div>
-
-          {expandedDays[dayIndex] && (
-            <div className="px-4 py-6">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-gray-700 text-lg font-['Inter'] tracking-tight">Gastos</h3>
-                    <button
-                      onClick={() => addRow(dayIndex, 'expenses')}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded transition-colors"
-                    >
-                      <PlusIcon size={20} />
-                    </button>
-                  </div>
-                  {day.expenses.map((expense, rowIndex) => (
-                    <IncomeExpenseRow
-                      key={rowIndex}
-                      item={expense}
-                      onNameChange={(value) =>
-                        updateDayItem(dayIndex, 'expenses', rowIndex, 'name', value)
-                      }
-                      onAmountChange={(value) =>
-                        updateDayItem(dayIndex, 'expenses', rowIndex, 'amount', value)
-                      }
-                      onPaymentTypeChange={(value) =>
-                        updateDayItem(dayIndex, 'expenses', rowIndex, 'paymentType', value)
-                      }
-                      onRemove={() => removeRow(dayIndex, 'expenses', rowIndex)}
-                    />
-                  ))}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="chevron-icon">
+                  {expandedDays[dayIndex]
+                    ? <ChevronDownIcon size={14} />
+                    : <ChevronRightIcon size={14} />}
                 </div>
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-gray-700 text-lg font-['Inter'] tracking-tight">Ingresos</h3>
-                    <button
-                      onClick={() => addRow(dayIndex, 'incomes')}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded transition-colors"
-                    >
-                      <PlusIcon size={20} />
-                    </button>
-                  </div>
-                  {day.incomes.map((income, rowIndex) => (
-                    <IncomeExpenseRow
-                      key={rowIndex}
-                      item={income}
-                      onNameChange={(value) =>
-                        updateDayItem(dayIndex, 'incomes', rowIndex, 'name', value)
-                      }
-                      onAmountChange={(value) =>
-                        updateDayItem(dayIndex, 'incomes', rowIndex, 'amount', value)
-                      }
-                      onPaymentTypeChange={(value) =>
-                        updateDayItem(dayIndex, 'incomes', rowIndex, 'paymentType', value)
-                      }
-                      onRemove={() => removeRow(dayIndex, 'incomes', rowIndex)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <DaySummary day={day} />
-
-              <div className="mt-6 flex justify-end space-x-4">
-                <button
-                  onClick={handleExportResults}
-                  className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded flex items-center transition-colors shadow-md"
+                <h2
+                  className="font-display font-semibold truncate"
+                  style={{
+                    fontSize: 'clamp(0.85rem, 2vw, 1rem)',
+                    color: 'var(--color-text)',
+                    letterSpacing: '-0.008em',
+                    lineHeight: 1.4,
+                    textTransform: 'capitalize',
+                  }}
                 >
-                  <FileTextIcon className="mr-2" /> Exportar Resultados
-                </button>
+                  {day.date.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year:    'numeric',
+                    month:   'long',
+                    day:     'numeric',
+                  })}
+                </h2>
               </div>
-            </div>
-          )}
-        </div>
-      ))}
 
+              <button
+                className="btn-remove-day"
+                onClick={e => { e.stopPropagation(); removeDay(dayIndex); }}
+              >
+                <TrashIcon size={14} />
+              </button>
+            </div>
+
+            {/* Contenido expandido */}
+            {expandedDays[dayIndex] && (
+              <div className="p-6 sm:p-8 animate-slide-down">
+                <div className="grid md:grid-cols-2 gap-10">
+
+                  {/* Columna Gastos */}
+                  <div>
+                    <div className="flex justify-between items-center mb-5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          style={{
+                            width: 3, height: 20,
+                            background: 'var(--color-expense)',
+                            borderRadius: 99,
+                            display: 'inline-block',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <h3
+                          className="font-display font-semibold uppercase"
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--color-expense)',
+                            letterSpacing: '0.08em',
+                          }}
+                        >
+                          Gastos
+                        </h3>
+                      </div>
+                      <button
+                        className="btn-add-expense"
+                        onClick={() => addRow(dayIndex, 'expenses')}
+                      >
+                        <PlusIcon size={14} />
+                      </button>
+                    </div>
+
+                    {day.expenses.map((expense, rowIndex) => (
+                      <IncomeExpenseRow
+                        key={rowIndex}
+                        item={expense}
+                        type="expense"
+                        onNameChange={v =>          updateDayItem(dayIndex, 'expenses', rowIndex, 'name', v)}
+                        onAmountChange={v =>        updateDayItem(dayIndex, 'expenses', rowIndex, 'amount', v)}
+                        onPaymentTypeChange={v =>   updateDayItem(dayIndex, 'expenses', rowIndex, 'paymentType', v)}
+                        onRemove={() =>             removeRow(dayIndex, 'expenses', rowIndex)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Columna Ingresos */}
+                  <div>
+                    <div className="flex justify-between items-center mb-5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          style={{
+                            width: 3, height: 20,
+                            background: 'var(--color-income)',
+                            borderRadius: 99,
+                            display: 'inline-block',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <h3
+                          className="font-display font-semibold uppercase"
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--color-income)',
+                            letterSpacing: '0.08em',
+                          }}
+                        >
+                          {incomeSection}
+                        </h3>
+                      </div>
+                      <button
+                        className="btn-add-income"
+                        onClick={() => addRow(dayIndex, 'incomes')}
+                      >
+                        <PlusIcon size={14} />
+                      </button>
+                    </div>
+
+                    {day.incomes.map((income, rowIndex) => (
+                      <IncomeExpenseRow
+                        key={rowIndex}
+                        item={income}
+                        type="income"
+                        onNameChange={v =>          updateDayItem(dayIndex, 'incomes', rowIndex, 'name', v)}
+                        onAmountChange={v =>        updateDayItem(dayIndex, 'incomes', rowIndex, 'amount', v)}
+                        onPaymentTypeChange={v =>   updateDayItem(dayIndex, 'incomes', rowIndex, 'paymentType', v)}
+                        onRemove={() =>             removeRow(dayIndex, 'incomes', rowIndex)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <DaySummary day={day} mode={appMode} />
+
+                <div className="mt-8 flex justify-end">
+                  <button className="btn-export" onClick={handleExportResults}>
+                    <FileTextIcon size={13} />
+                    Exportar Resultados
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ══ MODAL: SELECCIONAR FECHA ═════════════════════════ */}
       {showDateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl w-96">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800">Selecciona una fecha</h2>
+        <div className="modal-overlay animate-fade-in">
+          <div className="modal-box animate-fade-up">
+            <span
+              className="font-display font-semibold uppercase block mb-2"
+              style={{ fontSize: 10.5, color: 'var(--color-lime)', letterSpacing: '0.1em' }}
+            >
+              Nuevo Registro
+            </span>
+
+            <h2
+              className="font-display font-bold mb-7"
+              style={{
+                fontSize: 'clamp(1.25rem, 3vw, 1.65rem)',
+                color: 'var(--color-text)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.25,
+              }}
+            >
+              Selecciona una fecha
+            </h2>
+
             <input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="border-2 border-blue-300 p-3 rounded w-full mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={e => setSelectedDate(e.target.value)}
+              className="input-dark mb-7"
             />
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowDateModal(false)}
-                className="bg-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-400 transition-colors"
-              >
+
+            <div className="flex gap-3 justify-end">
+              <button className="btn-ghost" onClick={() => setShowDateModal(false)}>
                 Cancelar
               </button>
-              <button
-                onClick={confirmDateAndAddDay}
-                className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition-colors"
-              >
+              <button className="btn-lime" onClick={confirmDateAndAddDay}>
                 Confirmar
               </button>
             </div>
