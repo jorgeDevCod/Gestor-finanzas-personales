@@ -46,10 +46,10 @@ const SALARY_LABELS = {
 };
 
 export const ModeSelector = ({ onConfirm, isChanging = false }) => {
-  const [step, setStep]               = useState(1);
+  const [step, setStep]                 = useState(1);
   const [selectedMode, setSelectedMode] = useState(null);
-  const [salaryInput, setSalaryInput] = useState('');
-  const [salaryError, setSalaryError] = useState('');
+  const [salaryInput, setSalaryInput]   = useState('');
+  const [salaryError, setSalaryError]   = useState('');
 
   const handleModeSelect = mode => {
     if (mode.id === 'daily') {
@@ -71,9 +71,15 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
 
   return (
     <div className="mode-overlay animate-fade-in">
-      <div style={{ width: '100%', maxWidth: 760 }}>
-
-        {/* ── PASO 1: SELECCIÓN DE MODO ──────────────────── */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 860,
+          margin: '0 auto',      
+          padding: '0 0',
+          boxSizing: 'border-box',
+        }}
+      >
         {step === 1 && (
           <div className="animate-fade-up">
             {isChanging && (
@@ -92,27 +98,38 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
               {isChanging ? 'Elige un nuevo modo' : 'Configuración inicial'}
             </p>
 
-            <h2
+            <h1
               className="font-display font-extrabold mb-3"
               style={{
-                fontSize: 'clamp(1.75rem, 4.5vw, 3rem)',
+                fontSize: 'clamp(1.9rem, 5vw, 3.2rem)',
                 color: 'var(--color-text)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.15,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.12,
               }}
             >
               ¿Cómo quieres gestionar
               <br />tus finanzas?
-            </h2>
+            </h1>
 
             <p
               className="font-body mb-10"
-              style={{ fontSize: 15, color: 'var(--color-text-sec)', lineHeight: 1.7 }}
+              style={{
+                fontSize: 'clamp(14px, 2vw, 15px)',
+                color: 'var(--color-text-sec)',
+                lineHeight: 1.7,
+                maxWidth: 560,
+              }}
             >
               Elige el flujo que mejor se adapte a tu situación financiera. Podrás cambiarlo cuando quieras.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '16px',
+              }}
+            >
               {MODES.map(mode => (
                 <button
                   key={mode.id}
@@ -121,6 +138,8 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
                   style={{
                     background: mode.accentBg,
                     borderColor: mode.accentBorderCSS,
+                    width: '100%',
+                    boxSizing: 'border-box',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = mode.accent;
@@ -131,7 +150,6 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  {/* Icono */}
                   <div
                     style={{
                       width: 48,
@@ -143,13 +161,13 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: mode.accent,
+                      flexShrink: 0,
                     }}
                   >
-                    <mode.Icon size={22} />
+                    <mode.Icon size={22} aria-hidden="true" />
                   </div>
 
-                  {/* Texto */}
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <p
                       className="font-display font-semibold mb-2"
                       style={{
@@ -173,7 +191,6 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
                     </p>
                   </div>
 
-                  {/* CTA */}
                   <div
                     style={{
                       display: 'flex',
@@ -181,6 +198,7 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
                       gap: 6,
                       paddingTop: 6,
                       borderTop: `1px solid ${mode.accentBorderCSS}`,
+                      flexShrink: 0,
                     }}
                   >
                     <span
@@ -197,7 +215,6 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
           </div>
         )}
 
-        {/* ── PASO 2: INGRESO DE SALARIO ─────────────────── */}
         {step === 2 && selectedMode && (
           <div className="animate-fade-up" style={{ maxWidth: 480, margin: '0 auto' }}>
             <button
@@ -205,22 +222,18 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
               className="btn-ghost mb-9"
               style={{ padding: '9px 18px', fontSize: 13.5 }}
             >
-              <ArrowLeftIcon size={14} />
+              <ArrowLeftIcon size={14} aria-hidden="true" />
               Volver
             </button>
 
             <p
               className="font-display font-semibold uppercase mb-3"
-              style={{
-                fontSize: 10.5,
-                color: selectedMode.accent,
-                letterSpacing: '0.1em',
-              }}
+              style={{ fontSize: 10.5, color: selectedMode.accent, letterSpacing: '0.1em' }}
             >
               Modo {selectedMode.label}
             </p>
 
-            <h2
+            <h1
               className="font-display font-extrabold mb-3"
               style={{
                 fontSize: 'clamp(1.6rem, 4vw, 2.5rem)',
@@ -233,7 +246,7 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
               <span style={{ color: selectedMode.accent }}>
                 {SALARY_LABELS[selectedMode.id].periodo}
               </span>?
-            </h2>
+            </h1>
 
             <p
               className="font-body mb-8"
@@ -243,7 +256,6 @@ export const ModeSelector = ({ onConfirm, isChanging = false }) => {
               Podrás editarlo cuando quieras.
             </p>
 
-            {/* Input de salario */}
             <div style={{ position: 'relative', marginBottom: salaryError ? 10 : 26 }}>
               <span
                 style={{
