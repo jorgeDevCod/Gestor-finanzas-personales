@@ -14,8 +14,7 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
 
 **Estado:** `useFinance` (días, modo, salario, acordeón) + `useTheme` (claro/oscuro). Persistencia `localStorage` claves `gfp:*` (v2, limpias, sin migración legacy por decisión explícita).
 
-### Stack (`package.json` → `gestor-finanzas-personales@1.0.0`)
-- `react@18`, `react-dom@18`, `lucide-react`, `xlsx` (**en uso**: export Excel real, 2 hojas)
+### Stack (`package.json` → `gestor-finanzas-personales@1.0.0`)- `react@18`, `react-dom@18`, `lucide-react`, `xlsx` (**en uso**: export Excel real, 2 hojas)
 - dev: `vite@6`, `typescript`, `vite-plugin-pwa` (Workbox generateSW), `tailwindcss@3`, `eslint@9`
 - Scripts: `dev` / `build` (`tsc --noEmit && vite build`) / `typecheck` / `lint` / `preview` / `test:smoke` (esbuild+node, 15 asserts) / `test` (todo lo anterior en cadena)
 
@@ -94,7 +93,8 @@ Reglas: no futuro, no duplicados, `paymentType` opcional, salario >0 en salary-m
 - `vite-plugin-pwa`: `registerType autoUpdate`, manifest (`Finanzas`, `standalone`, iconos 192/512 + maskable), `dist/sw.js` + Workbox, precache 13 entradas, `CacheFirst` Google Fonts 30 d.
 - `main.tsx` registra el SW en `load` (`BASE_URL + sw.js`); sin registro activo Chrome no ofrece instalación.
 - `hooks/usePwaInstall.ts`: captura `beforeinstallprompt` (preventDefault + stash), escucha `appinstalled` y cambios de `display-mode`, detecta iOS (`navigator.standalone`) para mostrar instrucciones manuales.
-- `index.html`: `mobile-web-app-capable`, `apple-touch-icon`, `theme-color` por esquema.
+- `index.html`: `mobile-web-app-capable`, `apple-touch-icon` (180px), `theme-color` por esquema.
+- Marca: icono billetera esmeralda + moneda ámbar (`icon-192/512`, `maskable-512`, `apple-touch-icon`, `favicon.ico` multi-tamaño); `og-image.png` 1200×630 + `summary_large_image`.
 - Verificado: `npm run build` genera `manifest.webmanifest`, `sw.js`, `registerSW.js`, `icons/`.
 
 ---
