@@ -1126,6 +1126,60 @@ body {
   }
 }
 
+/* ══ RESPONSIVE FINO (móviles pequeños) ══ */
+@media (max-width: 400px) {
+  .tool-main {
+    padding: 16px 12px 88px;
+  }
+
+  .topbar-inner {
+    padding: 8px 12px;
+  }
+
+  /* Botón instalar compacto: solo icono para no saturar la topbar */
+  .install-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .install-btn span {
+    display: none;
+  }
+
+  .stat-grid {
+    gap: 8px;
+  }
+
+  .stat-card-income,
+  .stat-card-expense,
+  .stat-card-balance-pos,
+  .stat-card-balance-neg {
+    padding: 10px 8px;
+  }
+
+  .stat-value {
+    font-size: 0.9rem;
+  }
+
+  .balance-card {
+    padding: 18px 16px;
+  }
+
+  .day-body {
+    padding: 4px 12px 16px;
+  }
+
+  .modal-box {
+    padding: 22px 18px;
+  }
+
+  .toolbar {
+    top: 53px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
