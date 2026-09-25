@@ -94,7 +94,7 @@ const App = () => {
               <Wallet size={17} />
             </span>
             <div>
-              <p className="brand-name">Finanzas</p>
+              <p className="brand-name">Mis Finanzas</p>
               {appMode && <p className="brand-mode">Modo {modeConfig.label}</p>}
             </div>
           </div>

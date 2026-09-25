@@ -45,7 +45,7 @@ export const exportToTextFile = (days: DayEntry[]): void => {
     })
     .join('\n\n');
 
-  downloadBlob(new Blob([body], { type: 'text/plain;charset=utf-8' }), `finanzas_${stamp()}.txt`);
+  downloadBlob(new Blob([body], { type: 'text/plain;charset=utf-8' }), `Mis Finanzas_${stamp()}.txt`);
 };
 
 interface ExcelRow {
@@ -98,7 +98,7 @@ export const exportToExcel = (days: DayEntry[]): void => {
     'Movimientos',
   );
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Resumen por día');
-  XLSX.writeFile(wb, `finanzas_${stamp()}.xlsx`);
+  XLSX.writeFile(wb, `Mis Finanzas_${stamp()}.xlsx`);
 };
 
 export const fmtMoneyEs = fmtMoney;
