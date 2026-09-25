@@ -139,7 +139,13 @@ npm run build      # tsc + vite + PWA (dist/, ignorado en git)
 npm run preview
 ```
 
-## 9. Pendiente sugerido (no bloqueante)
+## 9. Deploy (Netlify)
+
+- Sitio: `https://gestor-de-finanzas.netlify.app/` (canonical + `og:url`/`twitter:url`).
+- Auto-deploy desde GitHub, rama `main`, auto-publish ON.
+- `netlify.toml`: `npm run build` → `dist`, `NODE_VERSION=22` (Vite 6 exige ≥20.19; el default 18 rompía el build), `no-cache` en `sw.js`/`manifest.webmanifest`, immutable en `icons/`.
+
+## 10. Pendiente sugerido (no bloqueante)
 
 - Screenshots PWA (`public/screenshots/`) para prompt de instalación enriquecido.
 - Tests de `storage.ts` con mock `localStorage` y de `useFinance` con Testing Library (hoy cubiertos por tipos + smoke de utils).

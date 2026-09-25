@@ -1,0 +1,25 @@
+# Netlify: build determinista + PWA correcta.
+# - NODE_VERSION 22: Vite 6 exige Node >= 20.19 (el default 18 rompe el build).
+# - no-cache en sw.js y manifest: si el CDN los cachea, la PWA no se
+#   actualiza ni ofrece instalación.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
