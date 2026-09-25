@@ -10,17 +10,17 @@ export default {
       },
       colors: {
         brand: {
-          bg:       '#080A0E',
-          surface:  '#0F1117',
-          surface2: '#161922',
-          surface3: '#1C2030',
-          lime:     '#7ABF8E',   // sage green (replaced neon #C8F135)
-          income:   '#5AB5A5',   // muted teal (replaced neon #00E5B0)
-          expense:  '#E09090',   // soft coral (replaced #FF4D6D)
-          text:     '#E8ECF4',
-          muted:    '#6B7280',
-          dim:      '#9CA3AF',
-          border:   '#1F2535',
+          bg:       '#EDF1F6',
+          surface:  '#FFFFFF',
+          surface2: '#F1F5F9',
+          surface3: '#E2E8F0',
+          lime:     '#047857',   // emerald-700 · primario profesional
+          income:   '#0F766E',   // teal-700 · ingresos
+          expense:  '#B91C1C',   // red-700 · gastos
+          text:     '#1E293B',
+          muted:    '#5C6B80',
+          dim:      '#94A3B8',
+          border:   '#DCE3EC',
         },
       },
       animation: {

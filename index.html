@@ -1,10 +1,17 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="light">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" href="/favicon.ico" type="image/x-ico">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Finanzas" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#edf1f6" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0f1e" />
 
   <!-- SEO -->
   <meta name="description" content="Gestor de finanzas personales gratuito y fácil de usar. Registra tus ingresos y gastos día a día, de forma quincenal o mensual. Controla tu presupuesto, analiza tu balance y mejora tus hábitos de ahorro." />
@@ -24,16 +31,26 @@
   <meta name="twitter:description" content="Registra y controla tus ingresos y gastos de forma sencilla. Modos diario, quincenal y mensual." />
 
   <!-- Fonts: Poppins (display) — Arial is a system font, no import needed -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Aplica el tema guardado antes del primer pintado (evita flash). Claro por defecto. -->
+  <script>
+    try {
+      var t = localStorage.getItem('gfp:theme');
+      document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light';
+    } catch (e) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  </script>
 
   <title>Gestor de Finanzas Personales — Controla tus Ingresos y Gastos</title>
 </head>
 
 <body>
   <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>

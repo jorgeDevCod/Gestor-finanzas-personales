@@ -1,13 +1,16 @@
 {
-  "name": "gestor-gestoe-de-gastos",
+  "name": "gestor-finanzas-personales",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:smoke": "esbuild smoke.test.ts --bundle --platform=node --format=cjs --outfile=node_modules/.cache/gfp-smoke.cjs --log-level=error && node node_modules/.cache/gfp-smoke.cjs",
+    "test": "npm run typecheck && npm run lint && npm run test:smoke && npm run build"
   },
   "dependencies": {
     "lucide-react": "^0.462.0",
@@ -28,6 +31,8 @@
     "globals": "^15.12.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
-    "vite": "^6.0.1"
+    "typescript": "^7.0.2",
+    "vite": "^6.0.1",
+    "vite-plugin-pwa": "^1.3.0"
   }
 }
