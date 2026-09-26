@@ -20,6 +20,8 @@ import {
   loadInitialBalance,
   loadSalary,
   loadSalaryForMode,
+  resetInitialBalance,
+  resetSalaryForMode,
   saveInitialBalance,
   saveSalary,
   saveSalaryForMode,
@@ -164,7 +166,21 @@ saveSalaryForMode('daily', 0);
 check('daily touches nothing', loadSalaryForMode('biweekly') === 1400 && loadSalaryForMode('monthly') === 1700);
 memStore.clear();
 saveSalary(2000);
-check('legacy migrates once', loadSalaryForMode('biweekly') === 2000);
+check('legacy seeds both once', loadSalaryForMode('biweekly') === 2000 && loadSalaryForMode('monthly') === 2000);
+saveSalaryForMode('monthly', 1700);
+check('independent after seed', loadSalaryForMode('biweekly') === 2000 && loadSalaryForMode('monthly') === 1700);
+
+// reset: solo afecta al modo indicado
+memStore.clear();
+saveSalaryForMode('biweekly', 1400);
+saveSalaryForMode('monthly', 1700);
+saveInitialBalance(500);
+resetSalaryForMode('biweekly');
+check('reset biweekly empties', loadSalaryForMode('biweekly') === 0);
+check('reset keeps monthly', loadSalaryForMode('monthly') === 1700);
+check('reset biweekly asks again', needsSalaryStep('biweekly', loadSalaryForMode('biweekly')) === true);
+resetInitialBalance();
+check('reset initial to zero', loadInitialBalance() === 0);
 
 // mode flow: si el modo ya tiene monto, se entra directo sin pedirlo
 check('daily never asks', needsSalaryStep('daily', 0) === false && needsSalaryStep('daily', 1750) === false);

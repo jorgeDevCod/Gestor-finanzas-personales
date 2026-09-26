@@ -12,6 +12,7 @@ const K = {
   salary: 'gfp:salary',
   salaryBiweekly: 'gfp:salary-biweekly',
   salaryMonthly: 'gfp:salary-monthly',
+  salariesReady: 'gfp:salaries-ready',
   theme: 'gfp:theme',
   initial: 'gfp:initial',
 } as const;
@@ -125,11 +126,32 @@ const readPositive = (key: string): number => {
 };
 
 /**
- * Salario del modo indicado. Si aún no tiene uno propio, hereda el
- * legacy `gfp:salary` (migración sin volver a pedir). 0 = vacío, hay que pedirlo.
+ * Migración única: el legacy `gfp:salary` (compartido) se siembra en ambos
+ * modos solo si aún no tienen uno propio. Después cada modo es independiente
+ * y el reseteo vacía de verdad.
  */
-export const loadSalaryForMode = (mode: Exclude<AppMode, 'daily'>): number =>
-  readPositive(mode === 'biweekly' ? K.salaryBiweekly : K.salaryMonthly) || loadSalary();
+const ensureSalariesMigrated = (): void => {
+  if (read(K.salariesReady)) return;
+  const legacy = readPositive(K.salary);
+  if (legacy > 0) {
+    if (!readPositive(K.salaryBiweekly)) write(K.salaryBiweekly, String(legacy));
+    if (!readPositive(K.salaryMonthly)) write(K.salaryMonthly, String(legacy));
+  }
+  write(K.salariesReady, '1');
+};
+
+/**
+ * Salario del modo indicado (clave propia por modo).
+ * 0 = vacío, hay que pedirlo.
+ */
+export const loadSalaryForMode = (mode: Exclude<AppMode, 'daily'>): number => {
+  ensureSalariesMigrated();
+  return readPositive(mode === 'biweekly' ? K.salaryBiweekly : K.salaryMonthly);
+};
+
+/** Borra el salario propio del modo (vuelve a quedar vacío y lo pedirá). */
+export const resetSalaryForMode = (mode: Exclude<AppMode, 'daily'>): void =>
+  remove(mode === 'biweekly' ? K.salaryBiweekly : K.salaryMonthly);
 
 /** Saldo inicial de Daily. 0 por defecto (no exige historial previo). */
 export const loadInitialBalance = (): number => {
@@ -139,6 +161,9 @@ export const loadInitialBalance = (): number => {
 };
 
 export const saveInitialBalance = (value: number): void => write(K.initial, String(value));
+
+/** Borra el saldo inicial de Daily (vuelve a 0). */
+export const resetInitialBalance = (): void => remove(K.initial);
 
 export const loadTheme = (): Theme | null => {
   const v = read(K.theme);

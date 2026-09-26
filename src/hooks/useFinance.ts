@@ -7,6 +7,8 @@ import {
   loadInitialBalance,
   loadMode,
   loadSalaryForMode,
+  resetInitialBalance,
+  resetSalaryForMode,
   saveDays,
   saveInitialBalance,
   saveMode,
@@ -68,6 +70,19 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
     },
     [notify],
   );
+
+  /** Reinicia el monto base del modo actual (salario o saldo inicial) a cero. */
+  const resetBase = useCallback((): void => {
+    if (appMode === 'daily') {
+      setInitialBalanceState(0);
+      resetInitialBalance();
+      notify('info', 'Saldo inicial reiniciado a $0.');
+    } else if (appMode === 'biweekly' || appMode === 'monthly') {
+      resetSalaryForMode(appMode);
+      setBaseSalary(0);
+      notify('info', 'Salario reiniciado. Se pedirá de nuevo al entrar al modo.');
+    }
+  }, [appMode, notify]);
 
   const confirmMode = useCallback(
     (mode: AppMode, salary: number) => {
@@ -192,6 +207,7 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
     isSalaryMode,
     confirmMode,
     setInitialBalance,
+    resetBase,
     createDay,
     addToday,
     removeDay,

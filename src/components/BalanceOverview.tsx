@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { Pencil, RotateCcw } from 'lucide-react';
 import type { AppMode, DayTotals } from '../types/finance';
 import type { Period } from '../utils/periods';
 import { fmtMoney, type PeriodBalance } from '../utils/calculations';
@@ -13,6 +13,7 @@ interface Props {
   incomesLabel: string;
   onEditBase: () => void;
   editLabel: string;
+  onResetBase: () => void;
   /** Solo daily: movimientos de hoy como dato secundario. */
   today: DayTotals | null;
 }
@@ -29,6 +30,7 @@ export const BalanceOverview = ({
   incomesLabel,
   onEditBase,
   editLabel,
+  onResetBase,
   today,
 }: Props) => {
   const isDaily = mode === 'daily';
@@ -46,10 +48,21 @@ export const BalanceOverview = ({
             {isDaily ? formatLong(period.startISO) : period.range}
           </p>
         </div>
-        <button type="button" className="btn-ghost btn-sm" onClick={onEditBase}>
-          <Pencil size={13} aria-hidden="true" />
-          {editLabel}
-        </button>
+        <div className="balance-actions">
+          <button type="button" className="btn-ghost btn-sm" onClick={onEditBase}>
+            <Pencil size={13} aria-hidden="true" />
+            {editLabel}
+          </button>
+          <button
+            type="button"
+            className="btn-ghost btn-sm btn-danger-ghost"
+            onClick={onResetBase}
+            title="Reiniciar el monto base a cero"
+          >
+            <RotateCcw size={13} aria-hidden="true" />
+            Reiniciar
+          </button>
+        </div>
       </div>
 
       <p className={`balance-total ${positive ? 'txt-pos' : 'txt-expense'}`}>

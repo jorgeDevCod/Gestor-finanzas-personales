@@ -153,6 +153,7 @@ const App = () => {
     todayTotals,
     confirmMode,
     setInitialBalance,
+    resetBase,
     createDay,
     addToday,
     removeDay,
@@ -166,6 +167,7 @@ const App = () => {
   const [salaryFirst, setSalaryFirst] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [showInitialModal, setShowInitialModal] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [movModal, setMovModal] = useState<{ dayId: string; kind: MovementKind; rowId?: string } | null>(null);
 
@@ -277,6 +279,7 @@ const App = () => {
               }
             }}
             editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
+            onResetBase={() => setConfirmReset(true)}
             today={isDaily ? todayTotals : null}
           />
         )}
@@ -475,6 +478,21 @@ const App = () => {
           return false;
         }}
         onClose={() => setMovModal(null)}
+      />
+      <ConfirmDialog
+        open={confirmReset}
+        title={isDaily ? 'Reiniciar saldo inicial' : 'Reiniciar salario'}
+        message={
+          isDaily
+            ? 'El saldo inicial volverá a $0. Tus movimientos se conservan.'
+            : 'El salario de este modo volverá a quedar vacío y se pedirá de nuevo. Tus movimientos se conservan.'
+        }
+        confirmLabel="Reiniciar"
+        onConfirm={() => {
+          resetBase();
+          setConfirmReset(false);
+        }}
+        onCancel={() => setConfirmReset(false)}
       />
       <ConfirmDialog
         open={confirmClear}
