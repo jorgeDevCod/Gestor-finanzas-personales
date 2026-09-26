@@ -75,7 +75,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 | # | Flujo | Entrada → validación → efecto |
 |---|---|---|
 | F0 | Onboarding | `appMode null` → modal `ModeSelector` paso 1 → `daily` = fin directo (salario 0) / `biweekly\|monthly` → paso 2 salario `>0` → `confirmMode` guarda + toast |
-| F1 | Cambiar modo/salario | Icono ⚙ / `Editar salario` → mismo wizard (`isChanging`, con Cancelar) → conserva `days` |
+| F1 | Cambiar modo/salario | Icono ⚙ / `Editar salario` → mismo wizard (`isChanging`, con Cancelar) → conserva `days`. Daily **no borra** `gfp:salary` (`saveSalaryForMode`); al volver a quincena/mes el monto viene prellenado (no se pide de nuevo). Saldo inicial intacto. |
 | F2 | Crear día | Toolbar `Hoy` (abre existente si duplicado, toast info) / `Fecha` → `DateModal` (`max=hoy`) → `createDay`: ISO válida, no futura, no duplicada → auto-expande + toast |
 | F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con editar/eliminar; recálculo instantáneo (sin filas vacías ni botones +) |
 | F4 | Balance del período (v1.1) | Daily: **Saldo actual** = `gfp:initial` + todos los ingresos − todos los gastos (caja global) + hoy como dato secundario. Quincena/mes: `disponible = salario + ingresos del período − gastos del período` (fuera del período no afecta) + `Gastado X de Y`, `% utilizado` con texto, días restantes y por-día (null si 0). Salario se suma una sola vez. |

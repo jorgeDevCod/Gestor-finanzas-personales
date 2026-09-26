@@ -104,6 +104,19 @@ export const loadSalary = (): number => {
 
 export const saveSalary = (salary: number): void => write(K.salary, String(salary));
 
+/**
+ * Guarda el salario solo si el modo lo usa y el valor es válido.
+ * Daily nunca borra el salario guardado → al volver a quincena/mes
+ * no se pide el monto de nuevo. Devuelve el salario efectivo.
+ */
+export const saveSalaryForMode = (mode: AppMode, salary: number): number => {
+  if (mode !== 'daily' && Number.isFinite(salary) && salary > 0) {
+    saveSalary(salary);
+    return salary;
+  }
+  return loadSalary();
+};
+
 /** Saldo inicial de Daily. 0 por defecto (no exige historial previo). */
 export const loadInitialBalance = (): number => {
   const v = read(K.initial);

@@ -5,6 +5,8 @@ import type { AppMode } from '../types/finance';
 interface Props {
   onConfirm: (mode: AppMode, salary: number) => void;
   isChanging: boolean;
+  /** Último salario guardado: se prellena para no pedirlo de nuevo. */
+  savedSalary: number;
   onClose?: () => void;
 }
 
@@ -44,10 +46,10 @@ const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articu
 };
 
 /** Wizard de 2 pasos en modal (no bloquea con fullscreen salvo primer arranque, que lo decide App). */
-export const ModeSelector = ({ onConfirm, isChanging, onClose }: Props) => {
+export const ModeSelector = ({ onConfirm, isChanging, savedSalary, onClose }: Props) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [selected, setSelected] = useState<Exclude<AppMode, 'daily'> | null>(null);
-  const [salaryInput, setSalaryInput] = useState('');
+  const [salaryInput, setSalaryInput] = useState(savedSalary > 0 ? String(savedSalary) : '');
   const [salaryError, setSalaryError] = useState('');
 
   const pick = (id: AppMode) => {
@@ -56,6 +58,9 @@ export const ModeSelector = ({ onConfirm, isChanging, onClose }: Props) => {
       return;
     }
     setSelected(id);
+    // Prefill con el salario guardado para no pedirlo de nuevo.
+    setSalaryInput(savedSalary > 0 ? String(savedSalary) : '');
+    setSalaryError('');
     setStep(2);
   };
 
@@ -71,7 +76,7 @@ export const ModeSelector = ({ onConfirm, isChanging, onClose }: Props) => {
   const back = () => {
     setStep(1);
     setSalaryError('');
-    setSalaryInput('');
+    setSalaryInput(savedSalary > 0 ? String(savedSalary) : '');
   };
 
   return (
@@ -122,6 +127,12 @@ export const ModeSelector = ({ onConfirm, isChanging, onClose }: Props) => {
               Punto de partida para {SALARY_PERIOD[selected].articulo}. Podrás editarlo cuando quieras.
               <br />
               {SALARY_PERIOD[selected].nota}
+              {savedSalary > 0 && (
+                <>
+                  <br />
+                  Tienes ${savedSalary.toLocaleString('es-ES')} guardado: déjalo igual o escribe uno nuevo.
+                </>
+              )}
             </p>
             <div className="salary-wrap">
               <span className="salary-symbol" aria-hidden="true">

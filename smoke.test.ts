@@ -15,6 +15,13 @@ import {
   toISODate,
 } from './src/utils/periods';
 import { cashBalance, periodBalance } from './src/utils/calculations';
+import {
+  loadInitialBalance,
+  loadSalary,
+  saveInitialBalance,
+  saveSalary,
+  saveSalaryForMode,
+} from './src/utils/storage';
 
 let failures = 0;
 const check = (name: string, cond: boolean) => {
@@ -121,6 +128,26 @@ check('perDay null at zero', periodBalance(100, { totalIncomes: 0, totalExpenses
 
 // daily cash example: 500 + 100 - 20 - 15 = 565
 check('cash balance', cashBalance(500, { totalIncomes: 100, totalExpenses: 35, netBalance: 65 }) === 565);
+
+// persistence: cambiar de modo no reinicia montos
+const memStore = new Map<string, string>();
+(globalThis as Record<string, unknown>).localStorage = {
+  getItem: (k: string) => (memStore.has(k) ? memStore.get(k) : null),
+  setItem: (k: string, v: string) => {
+    memStore.set(k, String(v));
+  },
+  removeItem: (k: string) => {
+    memStore.delete(k);
+  },
+};
+saveSalary(1750);
+saveInitialBalance(500);
+check('salary roundtrip', loadSalary() === 1750);
+check('initial roundtrip', loadInitialBalance() === 500);
+check('daily keeps salary', saveSalaryForMode('daily', 0) === 1750 && loadSalary() === 1750);
+check('switch mode updates', saveSalaryForMode('monthly', 3500) === 3500 && loadSalary() === 3500);
+check('invalid ignored', saveSalaryForMode('biweekly', -5) === 3500 && loadSalary() === 3500);
+check('initial untouched by mode change', loadInitialBalance() === 500);
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

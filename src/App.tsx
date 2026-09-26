@@ -413,6 +413,7 @@ const App = () => {
         <ModeSelector
           onConfirm={handleConfirmMode}
           isChanging={!needsOnboarding}
+          savedSalary={baseSalary}
           onClose={needsOnboarding ? undefined : () => setShowModeSelector(false)}
         />
       )}

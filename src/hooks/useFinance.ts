@@ -10,7 +10,7 @@ import {
   saveDays,
   saveInitialBalance,
   saveMode,
-  saveSalary,
+  saveSalaryForMode,
 } from '../utils/storage';
 import { isFutureISO, isValidISO, todayISO } from '../utils/dates';
 import { calculateTotals, sumAll } from '../utils/calculations';
@@ -68,9 +68,9 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
   const confirmMode = useCallback(
     (mode: AppMode, salary: number) => {
       setAppMode(mode);
-      setBaseSalary(salary);
       saveMode(mode);
-      saveSalary(salary);
+      // Daily conserva el salario guardado; salary-modes lo actualizan si es válido.
+      setBaseSalary(saveSalaryForMode(mode, salary));
       notify('success', mode === 'daily' ? 'Modo diario activado.' : `Modo ${mode === 'biweekly' ? 'quincenal' : 'mensual'} activado.`);
     },
     [notify],
