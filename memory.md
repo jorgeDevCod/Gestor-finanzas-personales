@@ -1,8 +1,8 @@
-# MEMORY.MD — Gestor de Finanzas Personales (v1.0 TS + PWA)
+# MEMORY.MD — Gestor de Finanzas Personales (v1.1 períodos + caja)
 
 > **Ruta:** `C:\Users\Jpasapera\Downloads\proyectos\Gestor-finanzas-personales`
-> **Actualizado:** 2026-09-25 — migración completa JS→TS, PWA instalable, UI herramienta single-page, temas claro/oscuro.
-> **Tests:** `npm test` = `typecheck` + `lint` + `test:smoke` (15 checks) + `build` → todo verde.
+> **Actualizado:** v1.1 — balances por período actual (diaria/quincenal/mensual) y Daily como caja en tiempo real.
+> **Tests:** `npm test` = `typecheck` + `lint` + `test:smoke` (45 checks) + `build` → todo verde.
 
 ---
 
@@ -36,19 +36,20 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── vite-env.d.ts
     ├── types/finance.ts        # AppMode, PaymentType, MoneyRow, DayEntry{dateISO}, Theme, DayTotals, uid, normalizePaymentType
     ├── utils/dates.ts          # todayISO, isValidISO, isFutureISO, formatLong/Short (comparación lexicográfica, sin parche +1 día)
-    ├── utils/calculations.ts   # parseAmount, calculateTotals (única fuente), sumAll, fmtMoney
+    ├── utils/calculations.ts   # parseAmount, calculateTotals (única fuente), sumAll, fmtMoney, periodBalance, cashBalance
+    ├── utils/periods.ts          # Period, getCurrentPeriod, getDaysInPeriod (puro, YYYY-MM-DD local)
     ├── utils/storage.ts        # load/save days/mode/salary/theme, sanitize, sort por fecha
     ├── utils/constants.ts      # MODE_CONFIG, PAYMENT_OPTIONS, paymentLabel
     ├── utils/exportUtils.ts    # exportToTextFile + exportToExcel (2 hojas), revokeObjectURL
     ├── hooks/useTheme.ts       # default light, <html data-theme>, persiste gfp:theme
     ├── hooks/usePwaInstall.ts  # beforeinstallprompt/appinstalled/standalone/iOS → visible + install()
-    ├── hooks/useFinance.ts     # confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll
+    ├── hooks/useFinance.ts     # confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll, setInitialBalance + period/periodDays/periodTotals/todayTotals (derivados, no persistidos)
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
     └── components/
         ├── ModeSelector.tsx    # wizard modal 2 pasos (diaria directa / salario validado >0)
-        ├── BalanceOverview.tsx # solo salary-modes: remaining, % usado, barra ok/warn/danger
+        ├── BalanceOverview.tsx # balance del período (o caja Daily): disponible, progreso con texto, días restantes, por-día
         ├── DaySummary.tsx      # 3 cifras en tiempo real (la lista editable vive arriba)
-        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal (cero alert/confirm nativos)
+        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal, AmountModal (cero alert/confirm nativos)
 ```
 
 **Eliminado (legacy):** `App.jsx`, `main.jsx`, los 5 `.jsx` + 3 `.js`, `vite.config.js`, `FeatureCard` (marketing), hero `Domina tus finanzas…` + triple `HEADER_FEATURES` (compactados a subtítulo), botón export por día (ahora global), `alert/confirm` nativos, parche timezone `+1 día`, keys por índice, `dist/` del build viejo (regenerado, ignorado en git).
@@ -65,7 +66,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 - `amount` string (input controlado) → `parseAmount` (`parseFloat || 0`, NaN→0).
 - `dateISO` local, orden lexicográfico = cronológico. Sin `Date` con hora.
 - IDs `crypto.randomUUID()` → keys estables; acordeón `expandedId` (un día abierto).
-- `localStorage`: `gfp:days-v2` (JSON ordenado), `gfp:mode`, `gfp:salary`, `gfp:theme`.
+- `localStorage`: `gfp:days-v2` (JSON ordenado), `gfp:mode`, `gfp:salary`, `gfp:theme`, `gfp:initial` (saldo inicial Daily). Períodos y balances **nunca** se persisten (derivados).
 
 ---
 
@@ -77,8 +78,8 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 | F1 | Cambiar modo/salario | Icono ⚙ / `Editar salario` → mismo wizard (`isChanging`, con Cancelar) → conserva `days` |
 | F2 | Crear día | Toolbar `Hoy` (abre existente si duplicado, toast info) / `Fecha` → `DateModal` (`max=hoy`) → `createDay`: ISO válida, no futura, no duplicada → auto-expande + toast |
 | F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con editar/eliminar; recálculo instantáneo (sin filas vacías ni botones +) |
-| F4 | Balance global | Solo `biweekly\|monthly`: `remaining = salario + extras − gastos`; `% = gastos/(salario+extras)`; barra verde <70 / ámbar 70–90 / roja >90 |
-| F5 | Balance día | `DaySummary`: 3 cifras + `Ver detalle` colapsable + nota ahorro/déficit |
+| F4 | Balance del período (v1.1) | Daily: **Saldo actual** = `gfp:initial` + todos los ingresos − todos los gastos (caja global) + hoy como dato secundario. Quincena/mes: `disponible = salario + ingresos del período − gastos del período` (fuera del período no afecta) + `Gastado X de Y`, `% utilizado` con texto, días restantes y por-día (null si 0). Salario se suma una sola vez. |
+| F5 | Balance día | `DaySummary` en el acordeón: 3 cifras del día + nota ahorro/déficit (secundario en Daily) |
 | F6 | Export | Toolbar `TXT` (mismo formato legacy, `revokeObjectURL` corregido) / `Excel` (hojas `Movimientos` + `Resumen por día`) — siempre dataset completo |
 | F7 | Borrar | `Borrar` → `ConfirmDialog` (Esc/Cancelar) → vacía días, conserva modo/salario/tema |
 | F8 | Tema | Toggle sol/luna en topbar → `data-theme` + `colorScheme` + `gfp:theme`; **claro por defecto**, script inline anti-flash |

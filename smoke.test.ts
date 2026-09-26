@@ -8,6 +8,13 @@ import {
   upsertMovement,
   validateMovement,
 } from './src/utils/movements';
+import {
+  daysInMonth,
+  getCurrentPeriod,
+  getDaysInPeriod,
+  toISODate,
+} from './src/utils/periods';
+import { cashBalance, periodBalance } from './src/utils/calculations';
 
 let failures = 0;
 const check = (name: string, cond: boolean) => {
@@ -78,6 +85,42 @@ const t2 = calculateTotals(withIncome);
 check('realtime totals', t2.totalExpenses === 120 && t2.totalIncomes === 120 && t2.netBalance === 0);
 const removed = removeMovement(withIncome, 'expense', m1.id);
 check('remove keeps income', removed.expenses.length === 0 && removed.incomes.length === 1);
+
+// periods (v1.1)
+const p1 = getCurrentPeriod('biweekly', '2026-09-10');
+check('biweekly 09-10 first half', p1.startISO === '2026-09-01' && p1.endISO === '2026-09-15');
+const p2 = getCurrentPeriod('biweekly', '2026-09-26');
+check('biweekly 09-26 second half', p2.startISO === '2026-09-16' && p2.endISO === '2026-09-30');
+check('biweekly 09-26 elapsed/remaining', p2.totalDays === 15 && p2.elapsedDays === 11 && p2.daysRemaining === 4);
+const p3 = getCurrentPeriod('monthly', '2026-09-26');
+check('monthly 09 full month', p3.startISO === '2026-09-01' && p3.endISO === '2026-09-30');
+const pd = getCurrentPeriod('daily', '2026-09-26');
+check('daily is today', pd.startISO === '2026-09-26' && pd.endISO === '2026-09-26' && pd.totalDays === 1 && pd.daysRemaining === 0);
+check('feb non-leap', daysInMonth(2026, 2) === 28 && getCurrentPeriod('biweekly', '2026-02-20').endISO === '2026-02-28');
+check('feb leap', daysInMonth(2024, 2) === 29 && getCurrentPeriod('biweekly', '2024-02-20').endISO === '2024-02-29');
+check('feb monthly non-leap', getCurrentPeriod('monthly', '2023-02-15').endISO === '2023-02-28');
+check('month change', (() => { const p = getCurrentPeriod('biweekly', '2026-10-01'); return p.startISO === '2026-10-01' && p.endISO === '2026-10-15'; })());
+check('remaining zero at end', (() => { const p = getCurrentPeriod('biweekly', '2026-09-30'); return p.daysRemaining === 0 && p.elapsedDays === 15; })());
+check('toISODate pads', toISODate(2026, 3, 5) === '2026-03-05');
+
+const periodDays = [
+  { id: 'a', dateISO: '2026-09-05', incomes: [], expenses: [] },
+  { id: 'b', dateISO: '2026-09-20', incomes: [], expenses: [] },
+  { id: 'c', dateISO: '2026-10-02', incomes: [], expenses: [] },
+];
+check('filter in-period', getDaysInPeriod(periodDays, p2).map((d) => d.id).join(',') === 'b');
+check('empty period sums zero', (() => { const t = sumAll(getDaysInPeriod([], p2)); return t.totalIncomes === 0 && t.totalExpenses === 0; })());
+
+// biweekly example: 1750 + 120 - 840 = 1030, perDay 257.50
+const pb = periodBalance(1750, { totalIncomes: 120, totalExpenses: 840, netBalance: -720 }, 4);
+check('period available', pb.available === 1030);
+check('period spent/budget', pb.spent === 840 && pb.budget === 1870);
+check('period percent', pb.percentUsed === 45);
+check('period perDay', pb.perDay === 257.5);
+check('perDay null at zero', periodBalance(100, { totalIncomes: 0, totalExpenses: 10, netBalance: -10 }, 0).perDay === null);
+
+// daily cash example: 500 + 100 - 20 - 15 = 565
+check('cash balance', cashBalance(500, { totalIncomes: 100, totalExpenses: 35, netBalance: 65 }) === 565);
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

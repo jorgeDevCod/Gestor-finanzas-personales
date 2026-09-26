@@ -280,3 +280,104 @@ export const RegisterModal = ({
     </div>
   );
 };
+
+interface AmountModalProps {
+  open: boolean;
+  title: string;
+  subtitle: string;
+  label: string;
+  initialValue: number;
+  allowZero: boolean;
+  confirmLabel: string;
+  onConfirm: (value: number) => void;
+  onClose: () => void;
+}
+
+/** Editor genérico de un monto base (saldo inicial). Valida número finito ≥ 0. */
+export const AmountModal = ({
+  open,
+  title,
+  subtitle,
+  label,
+  initialValue,
+  allowZero,
+  confirmLabel,
+  onConfirm,
+  onClose,
+}: AmountModalProps) => {
+  const [value, setValue] = useState(String(initialValue));
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setValue(String(initialValue));
+      setError('');
+    }
+  }, [open, initialValue]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const submit = () => {
+    const n = parseFloat(value);
+    if (!Number.isFinite(n) || n < 0 || (!allowZero && n === 0)) {
+      setError(allowZero ? 'Ingresa un monto válido (0 o mayor).' : 'Ingresa un monto válido mayor a cero.');
+      return;
+    }
+    onConfirm(n);
+  };
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="amount-title">
+      <div className="modal-box">
+        <p className="eyebrow">Editar monto</p>
+        <h2 id="amount-title" className="modal-title-sm">
+          {title}
+        </h2>
+        <p className="modal-sub">{subtitle}</p>
+        <label htmlFor="amount-input" className="form-label">
+          {label}
+        </label>
+        <input
+          id="amount-input"
+          type="number"
+          placeholder="0.00"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError('');
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submit();
+          }}
+          autoFocus
+          className={`input-dark input-block ${error ? 'input-error' : ''}`}
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+        />
+        {error && (
+          <p className="field-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="modal-actions">
+          <button type="button" className="btn-ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="btn-lime" onClick={submit}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

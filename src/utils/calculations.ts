@@ -26,3 +26,48 @@ export const sumAll = (days: DayEntry[]): DayTotals => {
 
 export const fmtMoney = (n: number): string =>
   n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export interface PeriodBalance {
+  /** Salario (quincena/mes) o saldo inicial (daily). Se suma una sola vez. */
+  base: number;
+  totalIncomes: number;
+  totalExpenses: number;
+  /** base + ingresos − gastos. */
+  available: number;
+  /** Para el progreso: gastado vs (base + ingresos). */
+  spent: number;
+  budget: number;
+  percentUsed: number;
+  /** null cuando daysRemaining es 0. */
+  perDay: number | null;
+}
+
+/**
+ * Balance de un período a partir de la base + movimientos del período.
+ * Puro: no lee storage ni fecha actual.
+ */
+export const periodBalance = (
+  base: number,
+  totals: DayTotals,
+  daysRemaining: number,
+): PeriodBalance => {
+  const budget = base + totals.totalIncomes;
+  const available = budget - totals.totalExpenses;
+  const percentUsed = budget > 0
+    ? Math.min(Math.round((totals.totalExpenses / budget) * 100), 100)
+    : 0;
+  return {
+    base,
+    totalIncomes: totals.totalIncomes,
+    totalExpenses: totals.totalExpenses,
+    available,
+    spent: totals.totalExpenses,
+    budget,
+    percentUsed,
+    perDay: daysRemaining > 0 ? available / daysRemaining : null,
+  };
+};
+
+/** Caja personal Daily: saldoInicial + todos los ingresos − todos los gastos. */
+export const cashBalance = (initial: number, totals: DayTotals): number =>
+  initial + totals.totalIncomes - totals.totalExpenses;

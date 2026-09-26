@@ -11,6 +11,7 @@ const K = {
   mode: 'gfp:mode',
   salary: 'gfp:salary',
   theme: 'gfp:theme',
+  initial: 'gfp:initial',
 } as const;
 
 const read = (key: string): string | null => {
@@ -102,6 +103,15 @@ export const loadSalary = (): number => {
 };
 
 export const saveSalary = (salary: number): void => write(K.salary, String(salary));
+
+/** Saldo inicial de Daily. 0 por defecto (no exige historial previo). */
+export const loadInitialBalance = (): number => {
+  const v = read(K.initial);
+  const n = v === null ? 0 : parseFloat(v);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+};
+
+export const saveInitialBalance = (value: number): void => write(K.initial, String(value));
 
 export const loadTheme = (): Theme | null => {
   const v = read(K.theme);

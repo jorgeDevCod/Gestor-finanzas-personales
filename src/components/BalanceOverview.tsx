@@ -1,64 +1,119 @@
 import { Pencil } from 'lucide-react';
-import type { AppMode } from '../types/finance';
-import { fmtMoney } from '../utils/calculations';
+import type { AppMode, DayTotals } from '../types/finance';
+import type { Period } from '../utils/periods';
+import { fmtMoney, type PeriodBalance } from '../utils/calculations';
+import { formatLong } from '../utils/dates';
 
 interface Props {
   mode: AppMode;
-  baseSalary: number;
-  totalIncomes: number;
-  totalExpenses: number;
-  onEditSalary: () => void;
+  period: Period;
+  /** Ya calculado por el llamador (período o caja global). Nunca se persiste. */
+  balance: PeriodBalance;
+  baseLabel: string;
+  incomesLabel: string;
+  onEditBase: () => void;
+  editLabel: string;
+  /** Solo daily: movimientos de hoy como dato secundario. */
+  today: DayTotals | null;
 }
 
-/** Balance global, solo modos con salario (quincenal / mensual). */
-export const BalanceOverview = ({ mode, baseSalary, totalIncomes, totalExpenses, onEditSalary }: Props) => {
-  const remaining = baseSalary + totalIncomes - totalExpenses;
-  const positive = remaining >= 0;
-  const denominator = baseSalary + totalIncomes;
-  const percentUsed = denominator > 0 ? Math.min(Math.round((totalExpenses / denominator) * 100), 100) : 0;
-  const modeLabel = mode === 'biweekly' ? 'Quincenal' : 'Mensual';
-  const barClass = percentUsed > 90 ? 'bar-danger' : percentUsed > 70 ? 'bar-warn' : 'bar-ok';
+/**
+ * Balance del período actual (quincena/mes) o caja en tiempo real (daily).
+ * Progreso con texto + barra (no depende solo del color).
+ */
+export const BalanceOverview = ({
+  mode,
+  period,
+  balance,
+  baseLabel,
+  incomesLabel,
+  onEditBase,
+  editLabel,
+  today,
+}: Props) => {
+  const isDaily = mode === 'daily';
+  const positive = balance.available >= 0;
+  const barClass =
+    balance.percentUsed > 90 ? 'bar-danger' : balance.percentUsed > 70 ? 'bar-warn' : 'bar-ok';
+  const eyebrow = isDaily ? 'Saldo actual' : period.label;
 
   return (
-    <section className="balance-card" aria-label={`Balance ${modeLabel.toLowerCase()}`}>
+    <section className="balance-card" aria-label={isDaily ? 'Saldo actual' : `Balance ${period.label}`}>
       <div className="balance-head">
         <div>
-          <p className="eyebrow">Balance {modeLabel}</p>
+          <p className="eyebrow">{eyebrow}</p>
           <p className="balance-sub">
-            Salario base: <strong>${fmtMoney(baseSalary)}</strong>
+            {isDaily ? formatLong(period.startISO) : period.range}
           </p>
         </div>
-        <button type="button" className="btn-ghost btn-sm" onClick={onEditSalary}>
+        <button type="button" className="btn-ghost btn-sm" onClick={onEditBase}>
           <Pencil size={13} aria-hidden="true" />
-          Editar salario
+          {editLabel}
         </button>
       </div>
 
       <p className={`balance-total ${positive ? 'txt-pos' : 'txt-expense'}`}>
-        {positive ? '' : '−'}${fmtMoney(Math.abs(remaining))}
+        {positive ? '' : '−'}${fmtMoney(Math.abs(balance.available))}
       </p>
       <p className="balance-sub">
-        {positive ? 'disponibles' : 'de déficit'} · {percentUsed}% del período utilizado
+        {isDaily ? 'disponibles ahora mismo' : positive ? 'disponibles' : 'de déficit'}
       </p>
 
-      <div className="progress" role="progressbar" aria-valuenow={percentUsed} aria-valuemin={0} aria-valuemax={100}>
-        <div className={`progress-fill ${barClass}`} style={{ width: `${percentUsed}%` }} />
-      </div>
+      {!isDaily && (
+        <>
+          <p className="balance-sub" style={{ marginTop: 14 }}>
+            Gastado ${fmtMoney(balance.spent)} de ${fmtMoney(balance.budget)} ·{' '}
+            <strong>{balance.percentUsed}% utilizado</strong>
+          </p>
+          <div
+            className="progress"
+            role="progressbar"
+            aria-valuenow={balance.percentUsed}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuetext={`${balance.percentUsed}% utilizado`}
+          >
+            <div className={`progress-fill ${barClass}`} style={{ width: `${balance.percentUsed}%` }} />
+          </div>
+        </>
+      )}
 
       <div className="balance-grid">
         <div>
-          <p className="mini-label">Salario base</p>
-          <p className="mini-value">${fmtMoney(baseSalary)}</p>
+          <p className="mini-label">{baseLabel}</p>
+          <p className="mini-value">${fmtMoney(balance.base)}</p>
         </div>
         <div>
-          <p className="mini-label txt-income">Ingresos extra</p>
-          <p className="mini-value txt-income">+${fmtMoney(totalIncomes)}</p>
+          <p className="mini-label txt-income">{incomesLabel}</p>
+          <p className="mini-value txt-income">+${fmtMoney(balance.totalIncomes)}</p>
         </div>
         <div>
-          <p className="mini-label txt-expense">Gastos totales</p>
-          <p className="mini-value txt-expense">−${fmtMoney(totalExpenses)}</p>
+          <p className="mini-label txt-expense">Gastos</p>
+          <p className="mini-value txt-expense">−${fmtMoney(balance.totalExpenses)}</p>
         </div>
       </div>
+
+      {!isDaily && (
+        <p className="balance-sub" style={{ marginTop: 14 }}>
+          Días restantes: <strong>{period.daysRemaining}</strong>
+          {balance.perDay !== null ? (
+            <> · Disponible aprox. por día: <strong>${fmtMoney(balance.perDay)}</strong></>
+          ) : (
+            <> · Último día del período</>
+          )}
+        </p>
+      )}
+      {isDaily && today && (
+        <p className="balance-sub" style={{ marginTop: 14 }}>
+          Hoy: <span className="txt-income">+${fmtMoney(today.totalIncomes)}</span>
+          {' · '}
+          <span className="txt-expense">−${fmtMoney(today.totalExpenses)}</span>
+          {' · Balance '}
+          <strong className={today.netBalance >= 0 ? 'txt-pos' : 'txt-expense'}>
+            {today.netBalance >= 0 ? '+' : '−'}${fmtMoney(Math.abs(today.netBalance))}
+          </strong>
+        </p>
+      )}
     </section>
   );
 };

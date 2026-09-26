@@ -11,28 +11,36 @@ interface Props {
 const MODES: { id: AppMode; headline: string; description: string; accentClass: string }[] = [
   {
     id: 'daily',
-    headline: 'Registro día a día',
-    description: 'Sin salario base. Ideal para freelancers o seguimiento detallado.',
+    headline: 'Hoy',
+    description: 'Controla cuánto dinero tienes y cómo cambia con cada movimiento.',
     accentClass: 'mode-accent-income',
   },
   {
     id: 'biweekly',
-    headline: 'Salario quincenal',
-    description: 'Parte de un salario fijo de quincena. Gastos descuentan, extras suman.',
+    headline: 'Quincena',
+    description: 'Administra tu dinero entre cada quincena. Del 1 al 15 y del 16 al último día del mes.',
     accentClass: 'mode-accent-lime',
   },
   {
     id: 'monthly',
-    headline: 'Salario mensual',
-    description: 'Define tu sueldo mensual y monitorea tu balance del mes.',
+    headline: 'Mes',
+    description: 'Controla tu presupuesto durante todo el mes. Del día 1 al último día del mes.',
     accentClass: 'mode-accent-violet',
   },
 ];
 
 const MODE_ICON = { daily: CalendarDays, biweekly: CreditCard, monthly: BarChart3 } as const;
-const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articulo: string }> = {
-  biweekly: { periodo: 'quincenal', articulo: 'tu quincena' },
-  monthly: { periodo: 'mensual', articulo: 'tu mes' },
+const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articulo: string; nota: string }> = {
+  biweekly: {
+    periodo: 'quincenal',
+    articulo: 'tu quincena',
+    nota: 'Tu quincena va del 1 al 15 o del 16 al último día del mes. Solo cuentan los movimientos de la quincena actual.',
+  },
+  monthly: {
+    periodo: 'mensual',
+    articulo: 'tu mes',
+    nota: 'Tu mes va del día 1 al último día del mes. Solo cuentan los movimientos del mes actual.',
+  },
 };
 
 /** Wizard de 2 pasos en modal (no bloquea con fullscreen salvo primer arranque, que lo decide App). */
@@ -112,6 +120,8 @@ export const ModeSelector = ({ onConfirm, isChanging, onClose }: Props) => {
             </h2>
             <p className="modal-sub">
               Punto de partida para {SALARY_PERIOD[selected].articulo}. Podrás editarlo cuando quieras.
+              <br />
+              {SALARY_PERIOD[selected].nota}
             </p>
             <div className="salary-wrap">
               <span className="salary-symbol" aria-hidden="true">

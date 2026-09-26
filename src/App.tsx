@@ -21,14 +21,14 @@ import { useTheme } from './hooks/useTheme';
 import { useFinance, type Notice } from './hooks/useFinance';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { MODE_CONFIG, paymentLabel } from './utils/constants';
-import { calculateTotals, fmtMoney } from './utils/calculations';
+import { calculateTotals, fmtMoney, periodBalance } from './utils/calculations';
 import { EMPTY_MOVEMENT, kindToRows, type MovementInput, type MovementKind } from './utils/movements';
 import { formatLong } from './utils/dates';
 import { exportToExcel, exportToTextFile } from './utils/exportUtils';
 import { BalanceOverview } from './components/BalanceOverview';
 import { DaySummary } from './components/DaySummary';
 import { ModeSelector } from './components/ModeSelector';
-import { ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
+import { AmountModal, ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
 import type { DayEntry } from './types/finance';
 
 interface RegisterModalHostProps {
@@ -144,10 +144,14 @@ const App = () => {
     days,
     appMode,
     baseSalary,
+    initialBalance,
     expandedId,
     totals,
-    isSalaryMode,
+    period,
+    periodTotals,
+    todayTotals,
     confirmMode,
+    setInitialBalance,
     createDay,
     addToday,
     removeDay,
@@ -159,12 +163,18 @@ const App = () => {
 
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
+  const [showInitialModal, setShowInitialModal] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [movModal, setMovModal] = useState<{ dayId: string; kind: MovementKind; rowId?: string } | null>(null);
 
   const mode: AppMode = appMode ?? 'daily';
   const modeConfig = MODE_CONFIG[mode];
   const needsOnboarding = appMode === null;
+  const isDaily = mode === 'daily';
+  /** Daily: caja global (saldo inicial + todo). Quincena/mes: solo período actual. */
+  const overviewBalance = isDaily
+    ? periodBalance(initialBalance, totals, 0)
+    : periodBalance(baseSalary, periodTotals, period.daysRemaining);
 
   const handleConfirmMode = (m: AppMode, salary: number) => {
     confirmMode(m, salary);
@@ -236,14 +246,17 @@ const App = () => {
           </p>
         )}
 
-        {/* Balance global solo en modos con salario */}
-        {isSalaryMode && appMode && (
+        {/* Balance del período actual (o caja en Daily) */}
+        {appMode && (
           <BalanceOverview
             mode={appMode}
-            baseSalary={baseSalary}
-            totalIncomes={totals.totalIncomes}
-            totalExpenses={totals.totalExpenses}
-            onEditSalary={() => setShowModeSelector(true)}
+            period={period}
+            balance={overviewBalance}
+            baseLabel={isDaily ? 'Saldo inicial' : 'Ingreso base'}
+            incomesLabel={isDaily ? 'Ingresos' : 'Ingresos extra'}
+            onEditBase={() => (isDaily ? setShowInitialModal(true) : setShowModeSelector(true))}
+            editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
+            today={isDaily ? todayTotals : null}
           />
         )}
 
@@ -404,6 +417,20 @@ const App = () => {
         />
       )}
       <DateModal open={showDateModal} onConfirm={handleDateConfirm} onClose={() => setShowDateModal(false)} />
+      <AmountModal
+        open={showInitialModal}
+        title="Saldo inicial"
+        subtitle="¿Cuánto dinero tienes actualmente? Se sumará a tus movimientos para mostrar tu saldo actual."
+        label="Saldo inicial $"
+        initialValue={initialBalance}
+        allowZero
+        confirmLabel="Guardar"
+        onConfirm={(v) => {
+          setInitialBalance(v);
+          setShowInitialModal(false);
+        }}
+        onClose={() => setShowInitialModal(false)}
+      />
       <RegisterModalHost
         movModal={movModal}
         days={days}

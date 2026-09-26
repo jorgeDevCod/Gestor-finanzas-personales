@@ -4,14 +4,17 @@ import { uid } from '../types/finance';
 import {
   clearDays,
   loadDays,
+  loadInitialBalance,
   loadMode,
   loadSalary,
   saveDays,
+  saveInitialBalance,
   saveMode,
   saveSalary,
 } from '../utils/storage';
 import { isFutureISO, isValidISO, todayISO } from '../utils/dates';
-import { sumAll } from '../utils/calculations';
+import { calculateTotals, sumAll } from '../utils/calculations';
+import { getCurrentPeriod, getDaysInPeriod } from '../utils/periods';
 import {
   removeMovement,
   upsertMovement,
@@ -31,6 +34,7 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
   const [days, setDays] = useState<DayEntry[]>(loadDays);
   const [appMode, setAppMode] = useState<AppMode | null>(loadMode);
   const [baseSalary, setBaseSalary] = useState<number>(loadSalary);
+  const [initialBalance, setInitialBalanceState] = useState<number>(loadInitialBalance);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +43,27 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
 
   const totals = useMemo(() => sumAll(days), [days]);
   const isSalaryMode = appMode === 'biweekly' || appMode === 'monthly';
+
+  /** Período actual según modo + hoy. No se persiste (derivado). */
+  const period = useMemo(() => getCurrentPeriod(appMode ?? 'daily', todayISO()), [appMode]);
+  const periodDays = useMemo(() => getDaysInPeriod(days, period), [days, period]);
+  const periodTotals = useMemo(() => sumAll(periodDays), [periodDays]);
+  const todayTotals = useMemo(() => {
+    const iso = todayISO();
+    const found = days.find((d) => d.dateISO === iso);
+    return found
+      ? calculateTotals(found)
+      : { totalIncomes: 0, totalExpenses: 0, netBalance: 0 };
+  }, [days]);
+
+  const setInitialBalance = useCallback(
+    (value: number): void => {
+      setInitialBalanceState(value);
+      saveInitialBalance(value);
+      notify('success', 'Saldo inicial actualizado.');
+    },
+    [notify],
+  );
 
   const confirmMode = useCallback(
     (mode: AppMode, salary: number) => {
@@ -153,10 +178,16 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
     days,
     appMode,
     baseSalary,
+    initialBalance,
     expandedId,
     totals,
+    period,
+    periodDays,
+    periodTotals,
+    todayTotals,
     isSalaryMode,
     confirmMode,
+    setInitialBalance,
     createDay,
     addToday,
     removeDay,
