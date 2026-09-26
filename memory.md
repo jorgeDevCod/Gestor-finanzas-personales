@@ -67,7 +67,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 - `amount` string (input controlado) → `parseAmount` (`parseFloat || 0`, NaN→0).
 - `dateISO` local, orden lexicográfico = cronológico. Sin `Date` con hora.
 - IDs `crypto.randomUUID()` → keys estables; acordeón `expandedId` (un día abierto).
-- `localStorage`: `gfp:days-v2` (JSON ordenado), `gfp:mode`, `gfp:salary`, `gfp:theme`, `gfp:initial` (saldo inicial Daily). Períodos y balances **nunca** se persisten (derivados).
+- `localStorage`: `gfp:days-v2` (JSON ordenado), `gfp:mode`, `gfp:salary` (legacy, solo lectura como semilla), `gfp:salary-biweekly`, `gfp:salary-monthly` (independientes, no se entreveran), `gfp:theme`, `gfp:initial` (saldo inicial Daily). Períodos y balances **nunca** se persisten (derivados).
 
 ---
 
@@ -76,7 +76,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 | # | Flujo | Entrada → validación → efecto |
 |---|---|---|
 | F0 | Onboarding | `appMode null` → modal `ModeSelector` paso 1 → `daily` = fin directo (salario 0) / `biweekly\|monthly` → paso 2 salario `>0` → `confirmMode` guarda + toast |
-| F1 | Cambiar modo | Icono ⚙ → elige modo y **entra directo** si ya tiene monto (`needsSalaryStep`; Daily nunca borra `gfp:salary`). Solo pide monto la primera vez o desde `Editar salario` (va directo al paso de monto). Días, salario y saldo inicial intactos. |
+| F1 | Cambiar modo | Icono ⚙ → elige modo y **entra directo** si ese modo ya tiene monto (`needsSalaryStep` por modo; Daily nunca borra nada). Modo sin monto → pide vacío solo para ese modo. `Editar salario` va directo al paso de monto. Días, salarios y saldo inicial intactos. |
 | F2 | Crear día | Toolbar `Hoy` (abre existente si duplicado, toast info) / `Fecha` → `DateModal` (`max=hoy`) → `createDay`: ISO válida, no futura, no duplicada → auto-expande + toast |
 | F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con editar/eliminar; recálculo instantáneo (sin filas vacías ni botones +) |
 | F4 | Balance del período (v1.1) | Daily: **Saldo actual** = `gfp:initial` + todos los ingresos − todos los gastos (caja global) + hoy como dato secundario. Quincena/mes: `disponible = salario + ingresos del período − gastos del período` (fuera del período no afecta) + `Gastado X de Y`, `% utilizado` con texto, días restantes y por-día (null si 0). Salario se suma una sola vez. |

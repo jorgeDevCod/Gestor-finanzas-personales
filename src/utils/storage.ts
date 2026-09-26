@@ -10,6 +10,8 @@ const K = {
   days: 'gfp:days-v2',
   mode: 'gfp:mode',
   salary: 'gfp:salary',
+  salaryBiweekly: 'gfp:salary-biweekly',
+  salaryMonthly: 'gfp:salary-monthly',
   theme: 'gfp:theme',
   initial: 'gfp:initial',
 } as const;
@@ -106,16 +108,28 @@ export const saveSalary = (salary: number): void => write(K.salary, String(salar
 
 /**
  * Guarda el salario solo si el modo lo usa y el valor es válido.
- * Daily nunca borra el salario guardado → al volver a quincena/mes
- * no se pide el monto de nuevo. Devuelve el salario efectivo.
+ * Cada modo con salario tiene su propia clave: no se entreveran.
+ * Daily nunca borra nada. Devuelve el salario efectivo.
  */
 export const saveSalaryForMode = (mode: AppMode, salary: number): number => {
   if (mode !== 'daily' && Number.isFinite(salary) && salary > 0) {
-    saveSalary(salary);
+    write(mode === 'biweekly' ? K.salaryBiweekly : K.salaryMonthly, String(salary));
     return salary;
   }
-  return loadSalary();
+  return mode === 'daily' ? loadSalary() : loadSalaryForMode(mode);
 };
+
+const readPositive = (key: string): number => {
+  const n = parseFloat(read(key) ?? '');
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/**
+ * Salario del modo indicado. Si aún no tiene uno propio, hereda el
+ * legacy `gfp:salary` (migración sin volver a pedir). 0 = vacío, hay que pedirlo.
+ */
+export const loadSalaryForMode = (mode: Exclude<AppMode, 'daily'>): number =>
+  readPositive(mode === 'biweekly' ? K.salaryBiweekly : K.salaryMonthly) || loadSalary();
 
 /** Saldo inicial de Daily. 0 por defecto (no exige historial previo). */
 export const loadInitialBalance = (): number => {

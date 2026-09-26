@@ -21,6 +21,7 @@ import { useTheme } from './hooks/useTheme';
 import { useFinance, type Notice } from './hooks/useFinance';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { MODE_CONFIG, paymentLabel } from './utils/constants';
+import { loadSalaryForMode } from './utils/storage';
 import { calculateTotals, fmtMoney, periodBalance } from './utils/calculations';
 import { EMPTY_MOVEMENT, kindToRows, type MovementInput, type MovementKind } from './utils/movements';
 import { formatLong } from './utils/dates';
@@ -187,6 +188,12 @@ const App = () => {
     setSalaryFirst(false);
     setShowModeSelector(true);
   };
+
+  /** Salario guardado de cada modo (lee storage: siempre fresco). */
+  const savedSalaryFor = useCallback(
+    (m: Exclude<AppMode, 'daily'>): number => loadSalaryForMode(m),
+    [],
+  );
 
   const handleInstall = async () => {
     const result = await install();
@@ -427,7 +434,7 @@ const App = () => {
         <ModeSelector
           onConfirm={handleConfirmMode}
           isChanging={!needsOnboarding}
-          savedSalary={baseSalary}
+          savedSalaryFor={savedSalaryFor}
           currentMode={appMode}
           startAtSalaryStep={salaryFirst}
           onClose={

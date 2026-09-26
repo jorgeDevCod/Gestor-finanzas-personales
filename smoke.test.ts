@@ -19,6 +19,7 @@ import { needsSalaryStep } from './src/utils/modeFlow';
 import {
   loadInitialBalance,
   loadSalary,
+  loadSalaryForMode,
   saveInitialBalance,
   saveSalary,
   saveSalaryForMode,
@@ -146,9 +147,24 @@ saveInitialBalance(500);
 check('salary roundtrip', loadSalary() === 1750);
 check('initial roundtrip', loadInitialBalance() === 500);
 check('daily keeps salary', saveSalaryForMode('daily', 0) === 1750 && loadSalary() === 1750);
-check('switch mode updates', saveSalaryForMode('monthly', 3500) === 3500 && loadSalary() === 3500);
-check('invalid ignored', saveSalaryForMode('biweekly', -5) === 3500 && loadSalary() === 3500);
+check('switch mode updates', saveSalaryForMode('monthly', 3500) === 3500 && loadSalaryForMode('monthly') === 3500);
+check('invalid ignored', (() => { const before = loadSalaryForMode('biweekly'); return saveSalaryForMode('biweekly', -5) === before; })());
 check('initial untouched by mode change', loadInitialBalance() === 500);
+
+// salarios independientes por modo (no se entreveran)
+memStore.clear();
+check('monthly empty asks', loadSalaryForMode('monthly') === 0 && needsSalaryStep('monthly', 0) === true);
+saveSalaryForMode('biweekly', 1400);
+check('biweekly keeps 1400', loadSalaryForMode('biweekly') === 1400);
+check('monthly still empty', loadSalaryForMode('monthly') === 0);
+saveSalaryForMode('monthly', 1700);
+check('monthly keeps 1700', loadSalaryForMode('monthly') === 1700);
+check('biweekly untouched', loadSalaryForMode('biweekly') === 1400);
+saveSalaryForMode('daily', 0);
+check('daily touches nothing', loadSalaryForMode('biweekly') === 1400 && loadSalaryForMode('monthly') === 1700);
+memStore.clear();
+saveSalary(2000);
+check('legacy migrates once', loadSalaryForMode('biweekly') === 2000);
 
 // mode flow: si el modo ya tiene monto, se entra directo sin pedirlo
 check('daily never asks', needsSalaryStep('daily', 0) === false && needsSalaryStep('daily', 1750) === false);

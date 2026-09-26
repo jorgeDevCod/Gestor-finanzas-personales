@@ -6,7 +6,7 @@ import {
   loadDays,
   loadInitialBalance,
   loadMode,
-  loadSalary,
+  loadSalaryForMode,
   saveDays,
   saveInitialBalance,
   saveMode,
@@ -33,7 +33,11 @@ export type Notice = { id: string; kind: 'info' | 'error' | 'success'; text: str
 export const useFinance = (notify: (kind: Notice['kind'], text: string) => void) => {
   const [days, setDays] = useState<DayEntry[]>(loadDays);
   const [appMode, setAppMode] = useState<AppMode | null>(loadMode);
-  const [baseSalary, setBaseSalary] = useState<number>(loadSalary);
+  /** Salario del modo actual (cada modo con salario tiene el suyo). */
+  const [baseSalary, setBaseSalary] = useState<number>(() => {
+    const m = loadMode();
+    return m === 'biweekly' || m === 'monthly' ? loadSalaryForMode(m) : 0;
+  });
   const [initialBalance, setInitialBalanceState] = useState<number>(loadInitialBalance);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 

@@ -6,8 +6,8 @@ import { needsSalaryStep } from '../utils/modeFlow';
 interface Props {
   onConfirm: (mode: AppMode, salary: number) => void;
   isChanging: boolean;
-  /** Último salario guardado: si existe, se entra directo sin pedirlo. */
-  savedSalary: number;
+  /** Salario guardado de cada modo (claves independientes, no se entreveran). */
+  savedSalaryFor: (mode: Exclude<AppMode, 'daily'>) => number;
   /** Modo actual al abrir (para edición directa del salario). */
   currentMode: AppMode | null;
   /** true al abrir desde "Editar salario": va directo al paso de monto. */
@@ -51,12 +51,15 @@ const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articu
 };
 
 /** Wizard de modos. Si el modo ya tiene monto, entra directo sin pedirlo. */
-export const ModeSelector = ({ onConfirm, isChanging, savedSalary, currentMode, startAtSalaryStep, onClose }: Props) => {
+export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMode, startAtSalaryStep, onClose }: Props) => {
   const editMode: Exclude<AppMode, 'daily'> | null =
     startAtSalaryStep && currentMode !== 'daily' ? currentMode : null;
   const [step, setStep] = useState<1 | 2>(editMode ? 2 : 1);
   const [selected, setSelected] = useState<Exclude<AppMode, 'daily'> | null>(editMode);
-  const [salaryInput, setSalaryInput] = useState(savedSalary > 0 ? String(savedSalary) : '');
+  const [salaryInput, setSalaryInput] = useState(() => {
+    const saved = editMode ? savedSalaryFor(editMode) : 0;
+    return saved > 0 ? String(saved) : '';
+  });
   const [salaryError, setSalaryError] = useState('');
 
   const pick = (id: AppMode) => {
@@ -64,14 +67,15 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalary, currentMode, 
       onConfirm('daily', 0);
       return;
     }
-    // Modo ya creado con monto: entrar directo, sin pedir nada.
-    if (!needsSalaryStep(id, savedSalary)) {
-      onConfirm(id, savedSalary);
+    const saved = savedSalaryFor(id);
+    // Modo ya creado con su monto: entrar directo, sin pedir nada.
+    if (!needsSalaryStep(id, saved)) {
+      onConfirm(id, saved);
       return;
     }
+    // Sin monto en ese modo: pedirlo vacío para ese modo.
     setSelected(id);
-    // Prefill con el salario guardado para no pedirlo de nuevo.
-    setSalaryInput(savedSalary > 0 ? String(savedSalary) : '');
+    setSalaryInput('');
     setSalaryError('');
     setStep(2);
   };
@@ -88,8 +92,10 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalary, currentMode, 
   const back = () => {
     setStep(1);
     setSalaryError('');
-    setSalaryInput(savedSalary > 0 ? String(savedSalary) : '');
+    setSalaryInput('');
   };
+
+  const selectedSaved = selected ? savedSalaryFor(selected) : 0;
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mode-title">
@@ -139,10 +145,10 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalary, currentMode, 
               Punto de partida para {SALARY_PERIOD[selected].articulo}. Podrás editarlo cuando quieras.
               <br />
               {SALARY_PERIOD[selected].nota}
-              {savedSalary > 0 && (
+              {selectedSaved > 0 && (
                 <>
                   <br />
-                  Tienes ${savedSalary.toLocaleString('es-ES')} guardado: déjalo igual o escribe uno nuevo.
+                  Tienes ${selectedSaved.toLocaleString('es-ES')} guardado en este modo: déjalo igual o escribe uno nuevo.
                 </>
               )}
             </p>
