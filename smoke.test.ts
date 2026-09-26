@@ -1,6 +1,13 @@
 import { calculateTotals, sumAll, fmtMoney, parseAmount } from './src/utils/calculations';
 import { todayISO, isValidISO, isFutureISO, formatLong } from './src/utils/dates';
 import { normalizePaymentType } from './src/types/finance';
+import {
+  buildMovement,
+  kindToRows,
+  removeMovement,
+  upsertMovement,
+  validateMovement,
+} from './src/utils/movements';
 
 let failures = 0;
 const check = (name: string, cond: boolean) => {
@@ -49,6 +56,28 @@ check('legacy debito', normalizePaymentType('tarjeta Debito') === 'debito');
 check('legacy credito', normalizePaymentType('tarjeta Credito') === 'credito');
 check('transferencia', normalizePaymentType('transferencia') === 'transferencia');
 check('unknown -> empty', normalizePaymentType('bitcoin') === '');
+
+// movements (flujo registrar gasto/entrada)
+check('kindToRows', kindToRows('income') === 'incomes' && kindToRows('expense') === 'expenses');
+check('validate ok', validateMovement({ name: 'Comida', amount: '250.5', paymentType: 'efectivo' }) === null);
+check('validate zero', validateMovement({ name: '', amount: '0', paymentType: '' }) !== null);
+check('validate negative', validateMovement({ name: '', amount: '-10', paymentType: '' }) !== null);
+check('validate NaN', validateMovement({ name: '', amount: 'abc', paymentType: '' }) !== null);
+const m1 = buildMovement({ name: '  Taxi  ', amount: '120.00', paymentType: 'efectivo' });
+const m2 = buildMovement({ name: 'Taxi', amount: '120', paymentType: 'efectivo' });
+check('build trims+normalizes', m1.name === 'Taxi' && m1.amount === '120');
+check('build unique ids', m1.id !== m2.id);
+const emptyDay = { id: 'd', dateISO: '2026-09-20', incomes: [], expenses: [] };
+const withOne = upsertMovement(emptyDay, 'expense', m1);
+check('upsert adds', withOne.expenses.length === 1 && emptyDay.expenses.length === 0);
+const edited = { ...m1, name: 'Taxi noche' };
+const withEdit = upsertMovement(withOne, 'expense', edited);
+check('upsert edits', withEdit.expenses.length === 1 && withEdit.expenses[0].name === 'Taxi noche');
+const withIncome = upsertMovement(withEdit, 'income', m2);
+const t2 = calculateTotals(withIncome);
+check('realtime totals', t2.totalExpenses === 120 && t2.totalIncomes === 120 && t2.netBalance === 0);
+const removed = removeMovement(withIncome, 'expense', m1.id);
+check('remove keeps income', removed.expenses.length === 0 && removed.incomes.length === 1);
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
+import { CircleDollarSign, MinusCircle } from 'lucide-react';
 import type { Notice } from '../hooks/useFinance';
+import type { PaymentType } from '../types/finance';
+import {
+  EMPTY_MOVEMENT,
+  validateMovement,
+  type MovementInput,
+  type MovementKind,
+} from '../utils/movements';
+import { PAYMENT_OPTIONS } from '../utils/constants';
 import { todayISO } from '../utils/dates';
 
 /** Toasts no bloqueantes (sustituyen alert/confirm nativos). */
@@ -93,6 +102,178 @@ export const DateModal = ({ open, onConfirm, onClose }: DateModalProps) => {
           </button>
           <button type="button" className="btn-lime" onClick={() => onConfirm(value)}>
             Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface RegisterModalProps {
+  open: boolean;
+  dayLabel: string;
+  kind: MovementKind;
+  /** Solo creación: permite alternar gasto/entrada. En edición va fijo. */
+  allowKindChange: boolean;
+  isEditing: boolean;
+  initial: MovementInput;
+  incomeLabel: string;
+  onKindChange: (kind: MovementKind) => void;
+  onSave: (kind: MovementKind, input: MovementInput) => boolean;
+  onClose: () => void;
+}
+
+/** Formulario de registro/edición de un movimiento (gasto o entrada). */
+export const RegisterModal = ({
+  open,
+  dayLabel,
+  kind,
+  allowKindChange,
+  isEditing,
+  initial,
+  incomeLabel,
+  onKindChange,
+  onSave,
+  onClose,
+}: RegisterModalProps) => {
+  const [name, setName] = useState(initial.name);
+  const [amount, setAmount] = useState(initial.amount);
+  const [payment, setPayment] = useState<PaymentType>(initial.paymentType);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setName(initial.name);
+      setAmount(initial.amount);
+      setPayment(initial.paymentType);
+      setError('');
+    }
+  }, [open, initial]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  const isIncome = kind === 'income';
+
+  const submit = () => {
+    const input: MovementInput = { name, amount, paymentType: payment };
+    const validation = validateMovement(input);
+    if (validation) {
+      setError(validation);
+      return;
+    }
+    if (onSave(kind, input)) {
+      setName(EMPTY_MOVEMENT.name);
+      setAmount(EMPTY_MOVEMENT.amount);
+      setPayment(EMPTY_MOVEMENT.paymentType);
+      setError('');
+    }
+  };
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="register-title">
+      <div className="modal-box">
+        <p className="eyebrow">{dayLabel}</p>
+        <h2 id="register-title" className="modal-title-sm">
+          {isEditing ? 'Editar movimiento' : isIncome ? 'Registrar entrada' : 'Registrar gasto'}
+        </h2>
+
+        {allowKindChange && (
+          <div className="seg-toggle" role="group" aria-label="Tipo de movimiento">
+            <button
+              type="button"
+              className={`seg-btn seg-expense ${!isIncome ? 'seg-active-expense' : ''}`}
+              onClick={() => onKindChange('expense')}
+              aria-pressed={!isIncome}
+            >
+              <MinusCircle size={15} aria-hidden="true" />
+              Gasto
+            </button>
+            <button
+              type="button"
+              className={`seg-btn seg-income ${isIncome ? 'seg-active-income' : ''}`}
+              onClick={() => onKindChange('income')}
+              aria-pressed={isIncome}
+            >
+              <CircleDollarSign size={15} aria-hidden="true" />
+              {incomeLabel === 'Ingresos' ? 'Ingreso' : 'Entrada'}
+            </button>
+          </div>
+        )}
+
+        <label className="form-label" htmlFor="mov-name">
+          Descripción
+        </label>
+        <input
+          id="mov-name"
+          type="text"
+          placeholder={isIncome ? 'Ej. Venta, bono, reembolso' : 'Ej. Comida, renta, transporte'}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="input-dark input-block"
+          maxLength={80}
+        />
+
+        <label className="form-label" htmlFor="mov-amount">
+          Monto $
+        </label>
+        <input
+          id="mov-amount"
+          type="number"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            setError('');
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submit();
+          }}
+          autoFocus
+          className={`input-dark input-block ${error ? 'input-error' : ''}`}
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+        />
+        {error && (
+          <p className="field-error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <label className="form-label" htmlFor="mov-pay">
+          Método de pago
+        </label>
+        <select
+          id="mov-pay"
+          value={payment}
+          onChange={(e) => setPayment(e.target.value as PaymentType)}
+          className="input-dark select-dark input-block"
+        >
+          {PAYMENT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="modal-actions">
+          <button type="button" className="btn-ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className={isIncome ? 'btn-income-solid' : 'btn-expense-solid'}
+            onClick={submit}
+          >
+            {isIncome ? 'Guardar entrada' : 'Guardar gasto'}
           </button>
         </div>
       </div>

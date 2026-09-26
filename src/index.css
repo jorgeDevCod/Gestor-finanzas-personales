@@ -602,13 +602,6 @@ body {
   }
 }
 
-.col-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
 .col-title {
   font-family: var(--font-display);
   font-weight: 600;
@@ -645,56 +638,238 @@ body {
   background: var(--color-income);
 }
 
-.col-empty {
-  font-size: 12.5px;
-  color: var(--color-text-ter);
-  margin: 0 0 8px;
+/* ══ CTAs REGISTRAR (verde dinero / rojo suave) ══ */
+.cta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 14px;
+  margin-bottom: 4px;
 }
 
-.btn-add-expense,
-.btn-add-income {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+.cta-expense,
+.cta-income {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 13px 12px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.08s ease, filter 0.15s ease;
+  white-space: nowrap;
+}
+
+.cta-expense:active,
+.cta-income:active {
+  transform: scale(0.97);
+}
+
+.cta-expense {
+  background: rgba(185, 28, 28, 0.1);
+  color: var(--color-expense);
+  border-color: rgba(185, 28, 28, 0.28);
+}
+
+.cta-expense:hover {
+  filter: brightness(1.05);
+}
+
+.cta-income {
+  background: var(--color-lime);
+  color: #fff;
+}
+
+:root[data-theme='dark'] .cta-income {
+  color: #06130e;
+}
+
+.cta-income:hover {
+  filter: brightness(1.06);
+}
+
+/* ══ LISTA DE MOVIMIENTOS ══ */
+.mov-empty {
+  font-size: 12.5px;
+  color: var(--color-text-ter);
+  margin: 8px 0 4px;
+}
+
+.mov-list {
+  list-style: none;
+  margin: 10px 0 4px;
+  padding: 0;
   border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
   background: var(--color-surface2);
+}
+
+.mov-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mov-item:last-child {
+  border-bottom: none;
+}
+
+.mov-chip {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mov-chip-income {
+  background: rgba(4, 120, 87, 0.14);
+  color: var(--color-lime);
+}
+
+.mov-chip-expense {
+  background: rgba(185, 28, 28, 0.1);
+  color: var(--color-expense);
+}
+
+.mov-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mov-name {
+  font-size: 13.5px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mov-meta {
+  font-size: 11.5px;
+  color: var(--color-text-ter);
+}
+
+.mov-amount {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.mov-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-ter);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.btn-add-expense {
+.mini-btn:hover {
+  color: var(--color-lime);
+  background: var(--color-surface3);
+}
+
+.mini-btn-danger:hover {
   color: var(--color-expense);
 }
 
-.btn-add-income {
-  color: var(--color-income);
-}
-
-/* ══ FILAS ══ */
-.row-expense,
-.row-income {
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 8px;
-  background: var(--color-surface2);
-}
-
-.row-top {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.row-fields {
+/* ══ SEGMENTADO GASTO/ENTRADA + FORM ══ */
+.seg-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  margin-bottom: 16px;
 }
+
+.seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 11px;
+  padding: 11px;
+  font-weight: 700;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface2);
+  color: var(--color-text-sec);
+}
+
+.seg-active-expense {
+  background: rgba(185, 28, 28, 0.1);
+  border-color: var(--color-expense);
+  color: var(--color-expense);
+}
+
+.seg-active-income {
+  background: rgba(4, 120, 87, 0.12);
+  border-color: var(--color-lime);
+  color: var(--color-lime);
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-sec);
+  margin: 12px 0 0;
+}
+
+.btn-income-solid,
+.btn-expense-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn-income-solid {
+  background: var(--color-lime);
+  color: #fff;
+}
+
+:root[data-theme='dark'] .btn-income-solid {
+  color: #06130e;
+}
+
+.btn-expense-solid {
+  background: var(--color-expense);
+  color: #fff;
+}
+
+/* ══ FILAS (inputs del modal) ══ */
 
 .input-dark {
   background: var(--color-surface);
@@ -739,24 +914,6 @@ body {
   font-size: 13px;
   color: var(--color-expense);
   margin: 8px 0 0;
-}
-
-.btn-remove-row {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-ter);
-  border-radius: 9px;
-  width: 34px;
-  height: 38px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-remove-row:hover {
-  color: var(--color-expense);
-  border-color: var(--color-expense);
 }
 
 /* ══ RESUMEN DÍA ══ */
@@ -822,56 +979,6 @@ body {
 
 .stat-value-pos {
   color: var(--color-lime);
-}
-
-.link-toggle {
-  background: none;
-  border: none;
-  color: var(--color-lime);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 12px 0 0;
-  font-family: var(--font-body);
-}
-
-.detail-lists {
-  padding-top: 10px;
-}
-
-.detail-list {
-  list-style: none;
-  margin: 0 0 8px;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 12px;
-  font-size: 13px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.detail-item:last-child {
-  border-bottom: none;
-}
-
-.detail-name {
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-meta {
-  color: var(--color-text-sec);
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 .balance-note-pos,

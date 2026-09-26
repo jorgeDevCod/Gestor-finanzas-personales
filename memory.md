@@ -42,13 +42,13 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── utils/exportUtils.ts    # exportToTextFile + exportToExcel (2 hojas), revokeObjectURL
     ├── hooks/useTheme.ts       # default light, <html data-theme>, persiste gfp:theme
     ├── hooks/usePwaInstall.ts  # beforeinstallprompt/appinstalled/standalone/iOS → visible + install()
-    ├── hooks/useFinance.ts     # confirmMode, createDay, addToday, removeDay, toggleExpand, updateItem, addRow, removeRow, clearAll
+    ├── hooks/useFinance.ts     # confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll
+    ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
     └── components/
         ├── ModeSelector.tsx    # wizard modal 2 pasos (diaria directa / salario validado >0)
         ├── BalanceOverview.tsx # solo salary-modes: remaining, % usado, barra ok/warn/danger
-        ├── DaySummary.tsx      # 3 cifras + detalle colapsable (usa calculateTotals)
-        ├── IncomeExpenseRow.tsx# select tipo + nombre + monto (keys por id)
-        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal (cero alert/confirm nativos)
+        ├── DaySummary.tsx      # 3 cifras en tiempo real (la lista editable vive arriba)
+        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal (cero alert/confirm nativos)
 ```
 
 **Eliminado (legacy):** `App.jsx`, `main.jsx`, los 5 `.jsx` + 3 `.js`, `vite.config.js`, `FeatureCard` (marketing), hero `Domina tus finanzas…` + triple `HEADER_FEATURES` (compactados a subtítulo), botón export por día (ahora global), `alert/confirm` nativos, parche timezone `+1 día`, keys por índice, `dist/` del build viejo (regenerado, ignorado en git).
@@ -76,7 +76,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 | F0 | Onboarding | `appMode null` → modal `ModeSelector` paso 1 → `daily` = fin directo (salario 0) / `biweekly\|monthly` → paso 2 salario `>0` → `confirmMode` guarda + toast |
 | F1 | Cambiar modo/salario | Icono ⚙ / `Editar salario` → mismo wizard (`isChanging`, con Cancelar) → conserva `days` |
 | F2 | Crear día | Toolbar `Hoy` (abre existente si duplicado, toast info) / `Fecha` → `DateModal` (`max=hoy`) → `createDay`: ISO válida, no futura, no duplicada → auto-expande + toast |
-| F3 | Editar filas | `+` agrega fila vacía (`addRow`); inputs controlados (`updateItem`); 🗑 elimina (`removeRow`, admite 0 filas); recálculo instantáneo + `saveDays` |
+| F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con editar/eliminar; recálculo instantáneo (sin filas vacías ni botones +) |
 | F4 | Balance global | Solo `biweekly\|monthly`: `remaining = salario + extras − gastos`; `% = gastos/(salario+extras)`; barra verde <70 / ámbar 70–90 / roja >90 |
 | F5 | Balance día | `DaySummary`: 3 cifras + `Ver detalle` colapsable + nota ahorro/déficit |
 | F6 | Export | Toolbar `TXT` (mismo formato legacy, `revokeObjectURL` corregido) / `Excel` (hojas `Movimientos` + `Resumen por día`) — siempre dataset completo |
@@ -113,7 +113,8 @@ Reglas: no futuro, no duplicados, `paymentType` opcional, salario >0 en salary-m
 | Archivo | Responsabilidad | Funciones clave |
 |---|---|---|
 | `App.tsx` | Shell, toolbar, acordeón, modales, toasts | `handleConfirmMode, handleDateConfirm` + todo `useFinance` |
-| `hooks/useFinance.ts` | Estado + reglas negocio | `confirmMode, createDay, addToday, removeDay, toggleExpand, updateItem, addRow, removeRow, clearAll` |
+| `hooks/useFinance.ts` | Estado + reglas negocio | `confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll` |
+| `utils/movements.ts` | Lógica pura de movimientos | `validateMovement, buildMovement, upsertMovement, removeMovement, kindToRows` |
 | `hooks/useTheme.ts` | Tema claro/oscuro persistido | `toggle, setTheme` |
 | `hooks/usePwaInstall.ts` | Visibilidad y disparo de instalación | `visible, iosMode, install()` |
 | `utils/calculations.ts` | Totales (fuente única) | `calculateTotals, sumAll, parseAmount, fmtMoney` |

@@ -3,29 +3,128 @@ import {
   CalendarPlus,
   ChevronDown,
   ChevronRight,
+  CircleDollarSign,
   Download,
   FileSpreadsheet,
   FileText,
+  MinusCircle,
   Moon,
+  Pencil,
   Plus,
   Settings,
   Sun,
   Trash2,
   Wallet,
 } from 'lucide-react';
-import type { AppMode } from './types/finance';
+import type { AppMode, MoneyRow } from './types/finance';
 import { useTheme } from './hooks/useTheme';
-import { usePwaInstall } from './hooks/usePwaInstall';
 import { useFinance, type Notice } from './hooks/useFinance';
-import { MODE_CONFIG } from './utils/constants';
+import { usePwaInstall } from './hooks/usePwaInstall';
+import { MODE_CONFIG, paymentLabel } from './utils/constants';
 import { calculateTotals, fmtMoney } from './utils/calculations';
+import { EMPTY_MOVEMENT, kindToRows, type MovementInput, type MovementKind } from './utils/movements';
 import { formatLong } from './utils/dates';
 import { exportToExcel, exportToTextFile } from './utils/exportUtils';
 import { BalanceOverview } from './components/BalanceOverview';
 import { DaySummary } from './components/DaySummary';
-import { IncomeExpenseRow } from './components/IncomeExpenseRow';
 import { ModeSelector } from './components/ModeSelector';
-import { ConfirmDialog, DateModal, Toasts } from './components/dialogs';
+import { ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
+import type { DayEntry } from './types/finance';
+
+interface RegisterModalHostProps {
+  movModal: { dayId: string; kind: MovementKind; rowId?: string } | null;
+  days: DayEntry[];
+  incomeSection: string;
+  onKindChange: (kind: MovementKind) => void;
+  onSave: (dayId: string, kind: MovementKind, input: MovementInput, rowId?: string) => boolean;
+  onClose: () => void;
+}
+
+/** Resuelve día/fila del modal y lo renderiza (creación o edición). */
+const RegisterModalHost = ({ movModal, days, incomeSection, onKindChange, onSave, onClose }: RegisterModalHostProps) => {
+  if (!movModal) return null;
+  const day = days.find((d) => d.id === movModal.dayId);
+  if (!day) return null;
+  const row = movModal.rowId
+    ? day[kindToRows(movModal.kind)].find((r) => r.id === movModal.rowId)
+    : undefined;
+  if (movModal.rowId && !row) return null;
+  return (
+    <RegisterModal
+      open
+      dayLabel={formatLong(day.dateISO)}
+      kind={movModal.kind}
+      allowKindChange={!movModal.rowId}
+      isEditing={!!movModal.rowId}
+      initial={
+        row
+          ? { name: row.name, amount: row.amount, paymentType: row.paymentType }
+          : EMPTY_MOVEMENT
+      }
+      incomeLabel={incomeSection === 'Ingresos' ? 'Ingresos' : 'Entradas'}
+      onKindChange={onKindChange}
+      onSave={(kind, input) => onSave(day.id, kind, input, movModal.rowId)}
+      onClose={onClose}
+    />
+  );
+};
+
+interface MovementGroupProps {
+  title: string;
+  tone: 'income' | 'expense';
+  rows: MoneyRow[];
+  emptyText: string;
+  onEdit: (row: MoneyRow) => void;
+  onDelete: (row: MoneyRow) => void;
+}
+
+/** Lista compacta de movimientos con editar/eliminar (totales arriba en tiempo real). */
+const MovementGroup = ({ title, tone, rows, emptyText, onEdit, onDelete }: MovementGroupProps) => {
+  const isIncome = tone === 'income';
+  return (
+    <section aria-label={`${title} del día`}>
+      <h3 className={`col-title ${isIncome ? 'col-title-income' : 'col-title-expense'}`}>{title}</h3>
+      {rows.length === 0 ? (
+        <p className="mov-empty">{emptyText}</p>
+      ) : (
+        <ul className="mov-list">
+          {rows.map((row) => (
+            <li key={row.id} className="mov-item">
+              <span className={`mov-chip ${isIncome ? 'mov-chip-income' : 'mov-chip-expense'}`} aria-hidden="true">
+                {isIncome ? '+' : '−'}
+              </span>
+              <span className="mov-main">
+                <span className="mov-name">{row.name || 'Sin descripción'}</span>
+                <span className="mov-meta">{paymentLabel(row.paymentType)}</span>
+              </span>
+              <span className={`mov-amount ${isIncome ? 'txt-income' : 'txt-expense'}`}>
+                {isIncome ? '+' : '−'}${fmtMoney(parseFloat(row.amount) || 0)}
+              </span>
+              <span className="mov-actions">
+                <button
+                  type="button"
+                  className="mini-btn"
+                  onClick={() => onEdit(row)}
+                  aria-label={`Editar ${row.name || 'movimiento'}`}
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="mini-btn mini-btn-danger"
+                  onClick={() => onDelete(row)}
+                  aria-label={`Eliminar ${row.name || 'movimiento'}`}
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+};
 
 const App = () => {
   const { theme, toggle } = useTheme();
@@ -53,8 +152,7 @@ const App = () => {
     addToday,
     removeDay,
     toggleExpand,
-    updateItem,
-    addRow,
+    saveMovement,
     removeRow,
     clearAll,
   } = useFinance(notify);
@@ -62,6 +160,7 @@ const App = () => {
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [movModal, setMovModal] = useState<{ dayId: string; kind: MovementKind; rowId?: string } | null>(null);
 
   const mode: AppMode = appMode ?? 'daily';
   const modeConfig = MODE_CONFIG[mode];
@@ -206,7 +305,7 @@ const App = () => {
             <p className="empty-title">Sin registros todavía</p>
             <p className="empty-text">
               Toca <strong>Hoy</strong> para abrir el día actual o <strong>Fecha</strong> para elegir otra fecha.
-              Luego agrega ingresos y gastos con nombre, monto y método de pago.
+              Luego usa <strong>Registrar gasto $</strong> o <strong>Registrar entrada $</strong> para anotar tus movimientos.
             </p>
           </div>
         )}
@@ -247,62 +346,44 @@ const App = () => {
 
                 {open && appMode && (
                   <div className="day-body">
-                    <div className="day-cols">
-                      <section aria-label="Gastos del día">
-                        <div className="col-head">
-                          <h3 className="col-title col-title-expense">Gastos</h3>
-                          <button
-                            type="button"
-                            className="btn-add-expense"
-                            onClick={() => addRow(day.id, 'expenses')}
-                            aria-label="Agregar gasto"
-                          >
-                            <Plus size={14} aria-hidden="true" />
-                          </button>
-                        </div>
-                        {day.expenses.length === 0 && (
-                          <p className="col-empty">Sin gastos. Agrega el primero con +.</p>
-                        )}
-                        {day.expenses.map((row) => (
-                          <IncomeExpenseRow
-                            key={row.id}
-                            item={row}
-                            type="expense"
-                            onNameChange={(v) => updateItem(day.id, 'expenses', row.id, 'name', v)}
-                            onAmountChange={(v) => updateItem(day.id, 'expenses', row.id, 'amount', v)}
-                            onPaymentTypeChange={(v) => updateItem(day.id, 'expenses', row.id, 'paymentType', v)}
-                            onRemove={() => removeRow(day.id, 'expenses', row.id)}
-                          />
-                        ))}
-                      </section>
+                    {/* CTAs de registro: verde dinero para entradas, rojo suave para gastos */}
+                    <div className="cta-row">
+                      <button
+                        type="button"
+                        className="cta-expense"
+                        onClick={() => setMovModal({ dayId: day.id, kind: 'expense' })}
+                      >
+                        <MinusCircle size={16} aria-hidden="true" />
+                        Registrar gasto $
+                      </button>
+                      <button
+                        type="button"
+                        className="cta-income"
+                        onClick={() => setMovModal({ dayId: day.id, kind: 'income' })}
+                      >
+                        <CircleDollarSign size={16} aria-hidden="true" />
+                        Registrar entrada $
+                      </button>
+                    </div>
 
-                      <section aria-label={`${modeConfig.incomeSection} del día`}>
-                        <div className="col-head">
-                          <h3 className="col-title col-title-income">{modeConfig.incomeSection}</h3>
-                          <button
-                            type="button"
-                            className="btn-add-income"
-                            onClick={() => addRow(day.id, 'incomes')}
-                            aria-label="Agregar ingreso"
-                          >
-                            <Plus size={14} aria-hidden="true" />
-                          </button>
-                        </div>
-                        {day.incomes.length === 0 && (
-                          <p className="col-empty">Sin ingresos. Agrega el primero con +.</p>
-                        )}
-                        {day.incomes.map((row) => (
-                          <IncomeExpenseRow
-                            key={row.id}
-                            item={row}
-                            type="income"
-                            onNameChange={(v) => updateItem(day.id, 'incomes', row.id, 'name', v)}
-                            onAmountChange={(v) => updateItem(day.id, 'incomes', row.id, 'amount', v)}
-                            onPaymentTypeChange={(v) => updateItem(day.id, 'incomes', row.id, 'paymentType', v)}
-                            onRemove={() => removeRow(day.id, 'incomes', row.id)}
-                          />
-                        ))}
-                      </section>
+                    {/* Lista de movimientos del día (tiempo real) */}
+                    <div className="day-cols">
+                      <MovementGroup
+                        title="Gastos"
+                        tone="expense"
+                        rows={day.expenses}
+                        emptyText="Sin gastos registrados."
+                        onEdit={(row) => setMovModal({ dayId: day.id, kind: 'expense', rowId: row.id })}
+                        onDelete={(row) => removeRow(day.id, 'expense', row.id)}
+                      />
+                      <MovementGroup
+                        title={modeConfig.incomeSection}
+                        tone="income"
+                        rows={day.incomes}
+                        emptyText="Sin entradas registradas."
+                        onEdit={(row) => setMovModal({ dayId: day.id, kind: 'income', rowId: row.id })}
+                        onDelete={(row) => removeRow(day.id, 'income', row.id)}
+                      />
                     </div>
 
                     <DaySummary day={day} mode={mode} />
@@ -323,6 +404,20 @@ const App = () => {
         />
       )}
       <DateModal open={showDateModal} onConfirm={handleDateConfirm} onClose={() => setShowDateModal(false)} />
+      <RegisterModalHost
+        movModal={movModal}
+        days={days}
+        incomeSection={modeConfig.incomeSection}
+        onKindChange={(kind) => setMovModal((m) => (m ? { ...m, kind } : m))}
+        onSave={(dayId, kind, input, rowId) => {
+          if (saveMovement(dayId, kind, input, rowId)) {
+            setMovModal(null);
+            return true;
+          }
+          return false;
+        }}
+        onClose={() => setMovModal(null)}
+      />
       <ConfirmDialog
         open={confirmClear}
         title="Borrar todos los registros"

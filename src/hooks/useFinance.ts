@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AppMode, DayEntry, RowKind } from '../types/finance';
+import type { AppMode, DayEntry } from '../types/finance';
 import { uid } from '../types/finance';
 import {
   clearDays,
@@ -12,14 +12,20 @@ import {
 } from '../utils/storage';
 import { isFutureISO, isValidISO, todayISO } from '../utils/dates';
 import { sumAll } from '../utils/calculations';
+import {
+  removeMovement,
+  upsertMovement,
+  validateMovement,
+  type MovementInput,
+  type MovementKind,
+} from '../utils/movements';
 
 export type Notice = { id: string; kind: 'info' | 'error' | 'success'; text: string };
 
-const emptyRow = () => ({ id: uid(), name: '', amount: '', paymentType: '' as const });
-
 /**
- * Estado financiero completo (extraído de App para que sea testeable).
- * Sin procesos huérfanos: cubre onboarding, CRUD días/filas, salario y limpieza.
+ * Estado financiero completo.
+ * Flujo de registro por modal: saveMovement (crear/editar) + removeRow.
+ * Sin filas vacías ni botones "+" que creen cards.
  */
 export const useFinance = (notify: (kind: Notice['kind'], text: string) => void) => {
   const [days, setDays] = useState<DayEntry[]>(loadDays);
@@ -62,7 +68,7 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
         notify('error', 'Ya existe un registro para esta fecha.');
         return false;
       }
-      const entry: DayEntry = { id: uid(), dateISO: iso, incomes: [emptyRow()], expenses: [emptyRow()] };
+      const entry: DayEntry = { id: uid(), dateISO: iso, incomes: [], expenses: [] };
       setDays((prev) => sortDays([...prev, entry]));
       setExpandedId(entry.id);
       notify('success', 'Día agregado.');
@@ -95,35 +101,46 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
     setExpandedId((cur) => (cur === id ? null : id));
   }, []);
 
-  const updateItem = useCallback(
-    (dayId: string, kind: RowKind, rowId: string, field: 'name' | 'amount' | 'paymentType', value: string): void => {
+  /** Crea o edita (si rowId existe) un movimiento validado. Devuelve true si guardó. */
+  const saveMovement = useCallback(
+    (dayId: string, kind: MovementKind, input: MovementInput, rowId?: string): boolean => {
+      const error = validateMovement(input);
+      if (error) {
+        notify('error', error);
+        return false;
+      }
+      const n = parseFloat(input.amount);
+      const row = {
+        id: rowId ?? uid(),
+        name: input.name.trim(),
+        amount: String(n),
+        paymentType: input.paymentType,
+      };
       setDays((prev) =>
-        prev.map((d) =>
-          d.id !== dayId
-            ? d
-            : {
-                ...d,
-                [kind]: d[kind].map((r) =>
-                  r.id !== rowId ? r : { ...r, [field]: value },
-                ),
-              },
-        ),
+        prev.map((d) => (d.id !== dayId ? d : upsertMovement(d, kind, row))),
       );
+      notify(
+        'success',
+        rowId
+          ? 'Movimiento actualizado.'
+          : kind === 'income'
+            ? 'Entrada registrada.'
+            : 'Gasto registrado.',
+      );
+      return true;
     },
-    [],
+    [notify],
   );
 
-  const addRow = useCallback((dayId: string, kind: RowKind): void => {
-    setDays((prev) =>
-      prev.map((d) => (d.id !== dayId ? d : { ...d, [kind]: [...d[kind], emptyRow()] })),
-    );
-  }, []);
-
-  const removeRow = useCallback((dayId: string, kind: RowKind, rowId: string): void => {
-    setDays((prev) =>
-      prev.map((d) => (d.id !== dayId ? d : { ...d, [kind]: d[kind].filter((r) => r.id !== rowId) })),
-    );
-  }, []);
+  const removeRow = useCallback(
+    (dayId: string, kind: MovementKind, rowId: string): void => {
+      setDays((prev) =>
+        prev.map((d) => (d.id !== dayId ? d : removeMovement(d, kind, rowId))),
+      );
+      notify('info', 'Movimiento eliminado.');
+    },
+    [notify],
+  );
 
   const clearAll = useCallback((): void => {
     setDays([]);
@@ -144,8 +161,7 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
     addToday,
     removeDay,
     toggleExpand,
-    updateItem,
-    addRow,
+    saveMovement,
     removeRow,
     clearAll,
   };
