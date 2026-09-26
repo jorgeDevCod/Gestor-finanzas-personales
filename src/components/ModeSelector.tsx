@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { ArrowLeft, BarChart3, CalendarDays, CreditCard } from 'lucide-react';
 import type { AppMode } from '../types/finance';
+import { needsSalaryStep } from '../utils/modeFlow';
 
 interface Props {
   onConfirm: (mode: AppMode, salary: number) => void;
   isChanging: boolean;
-  /** Último salario guardado: se prellena para no pedirlo de nuevo. */
+  /** Último salario guardado: si existe, se entra directo sin pedirlo. */
   savedSalary: number;
+  /** Modo actual al abrir (para edición directa del salario). */
+  currentMode: AppMode | null;
+  /** true al abrir desde "Editar salario": va directo al paso de monto. */
+  startAtSalaryStep: boolean;
   onClose?: () => void;
 }
 
@@ -45,16 +50,23 @@ const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articu
   },
 };
 
-/** Wizard de 2 pasos en modal (no bloquea con fullscreen salvo primer arranque, que lo decide App). */
-export const ModeSelector = ({ onConfirm, isChanging, savedSalary, onClose }: Props) => {
-  const [step, setStep] = useState<1 | 2>(1);
-  const [selected, setSelected] = useState<Exclude<AppMode, 'daily'> | null>(null);
+/** Wizard de modos. Si el modo ya tiene monto, entra directo sin pedirlo. */
+export const ModeSelector = ({ onConfirm, isChanging, savedSalary, currentMode, startAtSalaryStep, onClose }: Props) => {
+  const editMode: Exclude<AppMode, 'daily'> | null =
+    startAtSalaryStep && currentMode !== 'daily' ? currentMode : null;
+  const [step, setStep] = useState<1 | 2>(editMode ? 2 : 1);
+  const [selected, setSelected] = useState<Exclude<AppMode, 'daily'> | null>(editMode);
   const [salaryInput, setSalaryInput] = useState(savedSalary > 0 ? String(savedSalary) : '');
   const [salaryError, setSalaryError] = useState('');
 
   const pick = (id: AppMode) => {
     if (id === 'daily') {
       onConfirm('daily', 0);
+      return;
+    }
+    // Modo ya creado con monto: entrar directo, sin pedir nada.
+    if (!needsSalaryStep(id, savedSalary)) {
+      onConfirm(id, savedSalary);
       return;
     }
     setSelected(id);

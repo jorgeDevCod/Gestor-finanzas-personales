@@ -15,6 +15,7 @@ import {
   toISODate,
 } from './src/utils/periods';
 import { cashBalance, periodBalance } from './src/utils/calculations';
+import { needsSalaryStep } from './src/utils/modeFlow';
 import {
   loadInitialBalance,
   loadSalary,
@@ -148,6 +149,12 @@ check('daily keeps salary', saveSalaryForMode('daily', 0) === 1750 && loadSalary
 check('switch mode updates', saveSalaryForMode('monthly', 3500) === 3500 && loadSalary() === 3500);
 check('invalid ignored', saveSalaryForMode('biweekly', -5) === 3500 && loadSalary() === 3500);
 check('initial untouched by mode change', loadInitialBalance() === 500);
+
+// mode flow: si el modo ya tiene monto, se entra directo sin pedirlo
+check('daily never asks', needsSalaryStep('daily', 0) === false && needsSalaryStep('daily', 1750) === false);
+check('first biweekly asks', needsSalaryStep('biweekly', 0) === true);
+check('created biweekly skips', needsSalaryStep('biweekly', 1750) === false);
+check('created monthly skips', needsSalaryStep('monthly', 3500) === false);
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

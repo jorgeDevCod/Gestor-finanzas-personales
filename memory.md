@@ -45,6 +45,7 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── hooks/usePwaInstall.ts  # beforeinstallprompt/appinstalled/standalone/iOS → visible + install()
     ├── hooks/useFinance.ts     # confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll, setInitialBalance + period/periodDays/periodTotals/todayTotals (derivados, no persistidos)
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
+    ├── utils/modeFlow.ts         # needsSalaryStep: solo pedir monto si el modo no tiene (pura, testeada)
     └── components/
         ├── ModeSelector.tsx    # wizard modal 2 pasos (diaria directa / salario validado >0)
         ├── BalanceOverview.tsx # balance del período (o caja Daily): disponible, progreso con texto, días restantes, por-día
@@ -75,7 +76,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 | # | Flujo | Entrada → validación → efecto |
 |---|---|---|
 | F0 | Onboarding | `appMode null` → modal `ModeSelector` paso 1 → `daily` = fin directo (salario 0) / `biweekly\|monthly` → paso 2 salario `>0` → `confirmMode` guarda + toast |
-| F1 | Cambiar modo/salario | Icono ⚙ / `Editar salario` → mismo wizard (`isChanging`, con Cancelar) → conserva `days`. Daily **no borra** `gfp:salary` (`saveSalaryForMode`); al volver a quincena/mes el monto viene prellenado (no se pide de nuevo). Saldo inicial intacto. |
+| F1 | Cambiar modo | Icono ⚙ → elige modo y **entra directo** si ya tiene monto (`needsSalaryStep`; Daily nunca borra `gfp:salary`). Solo pide monto la primera vez o desde `Editar salario` (va directo al paso de monto). Días, salario y saldo inicial intactos. |
 | F2 | Crear día | Toolbar `Hoy` (abre existente si duplicado, toast info) / `Fecha` → `DateModal` (`max=hoy`) → `createDay`: ISO válida, no futura, no duplicada → auto-expande + toast |
 | F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con editar/eliminar; recálculo instantáneo (sin filas vacías ni botones +) |
 | F4 | Balance del período (v1.1) | Daily: **Saldo actual** = `gfp:initial` + todos los ingresos − todos los gastos (caja global) + hoy como dato secundario. Quincena/mes: `disponible = salario + ingresos del período − gastos del período` (fuera del período no afecta) + `Gastado X de Y`, `% utilizado` con texto, días restantes y por-día (null si 0). Salario se suma una sola vez. |

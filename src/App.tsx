@@ -162,6 +162,7 @@ const App = () => {
   } = useFinance(notify);
 
   const [showModeSelector, setShowModeSelector] = useState(false);
+  const [salaryFirst, setSalaryFirst] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [showInitialModal, setShowInitialModal] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -179,6 +180,12 @@ const App = () => {
   const handleConfirmMode = (m: AppMode, salary: number) => {
     confirmMode(m, salary);
     setShowModeSelector(false);
+    setSalaryFirst(false);
+  };
+
+  const openModePicker = () => {
+    setSalaryFirst(false);
+    setShowModeSelector(true);
   };
 
   const handleInstall = async () => {
@@ -231,7 +238,7 @@ const App = () => {
               {theme === 'light' ? <Moon size={17} aria-hidden="true" /> : <Sun size={17} aria-hidden="true" />}
             </button>
             {appMode && (
-              <button type="button" className="icon-btn" onClick={() => setShowModeSelector(true)} aria-label="Cambiar modo o salario">
+              <button type="button" className="icon-btn" onClick={openModePicker} aria-label="Cambiar modo o salario">
                 <Settings size={17} aria-hidden="true" />
               </button>
             )}
@@ -254,7 +261,14 @@ const App = () => {
             balance={overviewBalance}
             baseLabel={isDaily ? 'Saldo inicial' : 'Ingreso base'}
             incomesLabel={isDaily ? 'Ingresos' : 'Ingresos extra'}
-            onEditBase={() => (isDaily ? setShowInitialModal(true) : setShowModeSelector(true))}
+            onEditBase={() => {
+              if (isDaily) {
+                setShowInitialModal(true);
+              } else {
+                setSalaryFirst(true);
+                setShowModeSelector(true);
+              }
+            }}
             editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
             today={isDaily ? todayTotals : null}
           />
@@ -414,7 +428,16 @@ const App = () => {
           onConfirm={handleConfirmMode}
           isChanging={!needsOnboarding}
           savedSalary={baseSalary}
-          onClose={needsOnboarding ? undefined : () => setShowModeSelector(false)}
+          currentMode={appMode}
+          startAtSalaryStep={salaryFirst}
+          onClose={
+            needsOnboarding
+              ? undefined
+              : () => {
+                  setShowModeSelector(false);
+                  setSalaryFirst(false);
+                }
+          }
         />
       )}
       <DateModal open={showDateModal} onConfirm={handleDateConfirm} onClose={() => setShowDateModal(false)} />
