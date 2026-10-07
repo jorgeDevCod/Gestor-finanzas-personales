@@ -50,7 +50,7 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── utils/categories.ts       # normalizeKey, cleanName, add/rename/remove, resolveCategory, summarizeByCategory, seed (puras)
     ├── utils/modeFlow.ts         # needsSalaryStep: solo pedir monto si el modo no tiene (pura, testeada)
     └── components/
-        ├── ModeSelector.tsx    # wizard modal 2 pasos (diaria directa / salario validado >0)
+        ├── ModeSelector.tsx      # asistente: bienvenida → modos → monto (solo si falta); trap de foco
         ├── BalanceOverview.tsx # balance del período (o caja Daily) + "En qué se va tu dinero" por categoría
         ├── DaySummary.tsx      # 3 cifras en tiempo real (la lista editable vive arriba)
         ├── CategoriesModal.tsx # renombrar/eliminar categorías por tipo (con confirmación)

@@ -15,7 +15,7 @@ import {
   toISODate,
 } from './src/utils/periods';
 import { cashBalance, periodBalance } from './src/utils/calculations';
-import { needsSalaryStep } from './src/utils/modeFlow';
+import { initialOnboardingStep, needsSalaryStep } from './src/utils/modeFlow';
 import {
   loadInitialBalance,
   loadSalary,
@@ -203,6 +203,9 @@ check('daily never asks', needsSalaryStep('daily', 0) === false && needsSalarySt
 check('first biweekly asks', needsSalaryStep('biweekly', 0) === true);
 check('created biweekly skips', needsSalaryStep('biweekly', 1750) === false);
 check('created monthly skips', needsSalaryStep('monthly', 3500) === false);
+check('welcome on first run', initialOnboardingStep({ isChanging: false, editingSalary: false }) === 0);
+check('picker when changing', initialOnboardingStep({ isChanging: true, editingSalary: false }) === 1);
+check('salary step when editing', initialOnboardingStep({ isChanging: true, editingSalary: true }) === 2);
 
 // categories: normalización
 check('normalizeKey basic', normalizeKey('  Comída ') === 'comida');

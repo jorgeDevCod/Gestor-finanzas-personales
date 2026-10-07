@@ -17,7 +17,7 @@ con estado central en `hooks/useFinance.ts` y persistencia en `localStorage`.
 | Gestión categorías | `src/components/CategoriesModal.tsx` | Renombrar/eliminar por tipo con confirmación |
 | Tema | `src/hooks/useTheme.ts` | Claro/oscuro en `<html data-theme>`, persiste `gfp:theme` |
 | Instalación PWA | `src/hooks/usePwaInstall.ts` | Botón Instalar dinámico |
-| Onboarding / cambio de modo | `src/components/ModeSelector.tsx` | Wizard Hoy/Quincena/Mes + salario |
+| Onboarding / cambio de modo | `src/components/ModeSelector.tsx` | Bienvenida + Hoy/Quincena/Mes + salario |
 | Balance del período / caja | `src/components/BalanceOverview.tsx` | Disponible, progreso, días restantes, por-día |
 | Totales del día | `src/components/DaySummary.tsx` | 3 cifras + nota ahorro/déficit |
 | Diálogos | `src/components/dialogs.tsx` | `Toasts`, `ConfirmDialog`, `DateModal`, `RegisterModal`, `AmountModal` |
@@ -41,11 +41,12 @@ MoneyRow { id, name, amount: string, paymentType: efectivo|debito|credito|transf
 
 ### F0 — Primer arranque (onboarding)
 
-1. `appMode === null` → se muestra `ModeSelector` (paso 1) a pantalla completa.
-2. El usuario elige **Hoy** → `onConfirm('daily', 0)` → entra directo, sin pedir montos.
-3. Elige **Quincena** o **Mes** → paso 2: escribe su salario (`> 0`, Enter confirma) → entra al modo.
+1. `appMode === null` → `ModeSelector` a pantalla completa, **paso 0 bienvenida**: emblema + "Tus finanzas, bajo control" + 3 garantías (sin cuentas, datos en el dispositivo, offline) + CTA "Empezar".
+2. **Paso 1 de 2** "¿Cada cuánto recibes tu dinero?": Hoy (Recomendado) / Quincena / Mes. Hoy → `onConfirm('daily', 0)` directo, sin pedir montos.
+3. Quincena o Mes sin monto → **paso 2 de 2**: salario (`> 0`, Enter confirma) con nota de uso; con monto ya registrado entra directo.
 4. `confirmMode` guarda `gfp:mode` (+ salario por modo) y muestra toast de bienvenida.
 5. Si no hay días, aparece el estado vacío que guía a `Hoy` / `Fecha`.
+6. Al cambiar de modo (⚙) o editar salario nunca se muestra la bienvenida (`initialOnboardingStep`).
 
 ### F1 — Cambio de modo (⚙ Cambiar modo)
 

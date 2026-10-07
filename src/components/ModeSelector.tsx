@@ -1,7 +1,18 @@
-import { useState } from 'react';
-import { ArrowLeft, BarChart3, CalendarDays, CreditCard } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  CalendarDays,
+  CreditCard,
+  Lock,
+  ShieldCheck,
+  Wallet,
+  WifiOff,
+} from 'lucide-react';
 import type { AppMode } from '../types/finance';
-import { needsSalaryStep } from '../utils/modeFlow';
+import { initialOnboardingStep, needsSalaryStep } from '../utils/modeFlow';
+import { useFocusTrap } from './dialogs';
 
 interface Props {
   onConfirm: (mode: AppMode, salary: number) => void;
@@ -15,23 +26,30 @@ interface Props {
   onClose?: () => void;
 }
 
-const MODES: { id: AppMode; headline: string; description: string; accentClass: string }[] = [
+const MODES: {
+  id: AppMode;
+  headline: string;
+  description: string;
+  accentClass: string;
+  badge?: string;
+}[] = [
   {
     id: 'daily',
     headline: 'Hoy',
-    description: 'Controla cuánto dinero tienes y cómo cambia con cada movimiento.',
+    description: 'Empieza fácil: sin montos iniciales. Registras y ves tu saldo al instante.',
     accentClass: 'mode-accent-income',
+    badge: 'Recomendado',
   },
   {
     id: 'biweekly',
     headline: 'Quincena',
-    description: 'Administra tu dinero entre cada quincena. Del 1 al 15 y del 16 al último día del mes.',
+    description: 'Tu disponible del 1 al 15 y del 16 a fin de mes.',
     accentClass: 'mode-accent-lime',
   },
   {
     id: 'monthly',
     headline: 'Mes',
-    description: 'Controla tu presupuesto durante todo el mes. Del día 1 al último día del mes.',
+    description: 'Tu presupuesto del día 1 al último día del mes.',
     accentClass: 'mode-accent-violet',
   },
 ];
@@ -50,17 +68,34 @@ const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articu
   },
 };
 
-/** Wizard de modos. Si el modo ya tiene monto, entra directo sin pedirlo. */
+const TRUST: { Icon: typeof ShieldCheck; text: string }[] = [
+  { Icon: ShieldCheck, text: 'Sin cuentas ni registros' },
+  { Icon: Lock, text: 'Tus datos se quedan en tu dispositivo' },
+  { Icon: WifiOff, text: 'Funciona sin conexión' },
+];
+
+const StepDots = ({ current, total }: { current: number; total: number }) => (
+  <div className="step-dots" aria-hidden="true">
+    {Array.from({ length: total }, (_, i) => (
+      <span key={i} className={i === current ? 'step-dot step-dot-active' : 'step-dot'} />
+    ))}
+  </div>
+);
+
+/** Asistente inicial amable: bienvenida → modos → monto (solo si hace falta). */
 export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMode, startAtSalaryStep, onClose }: Props) => {
   const editMode: Exclude<AppMode, 'daily'> | null =
     startAtSalaryStep && currentMode !== 'daily' ? currentMode : null;
-  const [step, setStep] = useState<1 | 2>(editMode ? 2 : 1);
+  const [step, setStep] = useState<0 | 1 | 2>(() =>
+    initialOnboardingStep({ isChanging, editingSalary: editMode !== null }),
+  );
   const [selected, setSelected] = useState<Exclude<AppMode, 'daily'> | null>(editMode);
   const [salaryInput, setSalaryInput] = useState(() => {
     const saved = editMode ? savedSalaryFor(editMode) : 0;
     return saved > 0 ? String(saved) : '';
   });
   const [salaryError, setSalaryError] = useState('');
+  const trapRef = useFocusTrap(true);
 
   const pick = (id: AppMode) => {
     if (id === 'daily') {
@@ -95,18 +130,55 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMod
     setSalaryInput('');
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (step === 2) back();
+      else if (step === 1 && isChanging && onClose) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   const selectedSaved = selected ? savedSalaryFor(selected) : 0;
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mode-title">
-      <div className="modal-box modal-box-wide">
+      <div className="modal-box modal-box-wide" ref={trapRef}>
+        {step === 0 && (
+          <div className="welcome">
+            <span className="welcome-emblem" aria-hidden="true">
+              <Wallet size={30} />
+            </span>
+            <p className="eyebrow">Bienvenido a Mis Finanzas</p>
+            <h2 id="mode-title" className="welcome-title">
+              Tus finanzas, bajo control
+            </h2>
+            <p className="modal-sub">
+              Registra tus gastos e ingresos en segundos y descubre cuánto dinero te queda.
+            </p>
+            <ul className="trust-row">
+              {TRUST.map(({ Icon, text }) => (
+                <li key={text}>
+                  <Icon size={18} aria-hidden="true" />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="btn-lime btn-block" onClick={() => setStep(1)}>
+              Empezar
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
         {step === 1 && (
           <>
-            <p className="eyebrow">{isChanging ? 'Elige un nuevo modo' : 'Configuración inicial'}</p>
+            <p className="eyebrow">{isChanging ? 'Elige un nuevo modo' : 'Paso 1 de 2'}</p>
             <h2 id="mode-title" className="modal-title">
-              ¿Cómo quieres gestionar tus finanzas?
+              ¿Cada cuánto recibes tu dinero?
             </h2>
-            <p className="modal-sub">Podrás cambiarlo cuando quieras sin perder tus registros.</p>
+            <p className="modal-sub">Elige la forma que mejor encaje contigo. Podrás cambiarla después sin perder nada.</p>
             <div className="mode-grid">
               {MODES.map((m) => {
                 const Icon = MODE_ICON[m.id];
@@ -115,13 +187,17 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMod
                     <span className="mode-icon">
                       <Icon size={22} aria-hidden="true" />
                     </span>
-                    <span className="mode-headline">{m.headline}</span>
+                    <span className="mode-headline">
+                      {m.headline}
+                      {m.badge && <span className="mode-badge">{m.badge}</span>}
+                    </span>
                     <span className="mode-desc">{m.description}</span>
                     <span className="mode-cta">Seleccionar →</span>
                   </button>
                 );
               })}
             </div>
+            {!isChanging && <StepDots current={0} total={2} />}
             {isChanging && onClose && (
               <div className="modal-actions">
                 <button type="button" className="btn-ghost" onClick={onClose}>
@@ -138,11 +214,16 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMod
               <ArrowLeft size={14} aria-hidden="true" />
               Volver
             </button>
+            {!isChanging && (
+              <p className="eyebrow" style={{ marginTop: 18 }}>
+                Paso 2 de 2
+              </p>
+            )}
             <h2 className="modal-title">
               ¿Cuánto recibes {SALARY_PERIOD[selected].periodo}?
             </h2>
             <p className="modal-sub">
-              Punto de partida para {SALARY_PERIOD[selected].articulo}. Podrás editarlo cuando quieras.
+              Solo se usa para calcular tu disponible. Podrás editarlo cuando quieras.
               <br />
               {SALARY_PERIOD[selected].nota}
               {selectedSaved > 0 && (
@@ -183,6 +264,7 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMod
             <button type="button" className="btn-lime btn-block" onClick={confirmSalary}>
               Comenzar →
             </button>
+            {!isChanging && <StepDots current={1} total={2} />}
           </div>
         )}
       </div>
