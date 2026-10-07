@@ -22,7 +22,7 @@
   --shadow-card: 0 1px 2px rgba(30, 41, 59, 0.06), 0 10px 30px rgba(30, 41, 59, 0.08);
   --topbar-bg: rgba(255, 255, 255, 0.9);
   --font-display: 'Poppins', Arial, sans-serif;
-  --font-body: Arial, Helvetica, sans-serif;
+  --font-body: 'Open Sans', Arial, Helvetica, sans-serif;
 }
 
 /* ══ TEMA OSCURO ══ */

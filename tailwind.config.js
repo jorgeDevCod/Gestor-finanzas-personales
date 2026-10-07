@@ -5,8 +5,8 @@ export default {
     extend: {
       fontFamily: {
         display: ['Poppins', 'Arial', 'sans-serif'],
-        body:    ['Arial', 'Helvetica', 'sans-serif'],
-        sans:    ['Arial', 'Helvetica', 'sans-serif'],
+        body:    ['"Open Sans"', 'Arial', 'Helvetica', 'sans-serif'],
+        sans:    ['"Open Sans"', 'Arial', 'Helvetica', 'sans-serif'],
       },
       colors: {
         brand: {
