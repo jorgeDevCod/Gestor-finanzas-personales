@@ -13,6 +13,8 @@ export interface MoneyRow {
   /** String porque viene de <input type="number"> controlado; se parsea al calcular. */
   amount: string;
   paymentType: PaymentType;
+  /** OPCIONAL. Ausente = "Sin categoría". Huérfano = "Sin categoría". Sin migrar. */
+  categoryId?: string;
 }
 
 export interface DayEntry {
@@ -24,6 +26,18 @@ export interface DayEntry {
 }
 
 export type Theme = 'light' | 'dark';
+
+export type CategoryKind = 'expense' | 'income';
+
+export interface Category {
+  id: string;
+  /** Ya limpio: trim, espacios colapsados, máximo 24 caracteres. */
+  name: string;
+  kind: CategoryKind;
+}
+
+export const isCategoryKind = (v: unknown): v is CategoryKind =>
+  v === 'expense' || v === 'income';
 
 export interface DayTotals {
   totalIncomes: number;

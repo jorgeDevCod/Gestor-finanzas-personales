@@ -20,12 +20,28 @@ import {
   loadInitialBalance,
   loadSalary,
   loadSalaryForMode,
+  loadCategories,
   resetInitialBalance,
   resetSalaryForMode,
+  saveCategories,
   saveInitialBalance,
   saveSalary,
   saveSalaryForMode,
+  seedCategoriesIfNeeded,
 } from './src/utils/storage';
+import {
+  addCategory,
+  cleanName,
+  countByCategory,
+  dedupeCategories,
+  MAX_PER_KIND,
+  normalizeKey,
+  removeCategory,
+  renameCategory,
+  resolveCategory,
+  seedCategories,
+  summarizeByCategory,
+} from './src/utils/categories';
 
 let failures = 0;
 const check = (name: string, cond: boolean) => {
@@ -187,6 +203,142 @@ check('daily never asks', needsSalaryStep('daily', 0) === false && needsSalarySt
 check('first biweekly asks', needsSalaryStep('biweekly', 0) === true);
 check('created biweekly skips', needsSalaryStep('biweekly', 1750) === false);
 check('created monthly skips', needsSalaryStep('monthly', 3500) === false);
+
+// categories: normalización
+check('normalizeKey basic', normalizeKey('  Comída ') === 'comida');
+check('normalizeKey case/tabs', normalizeKey('\tCOMIDA\n') === 'comida');
+check('normalizeKey accents', normalizeKey('niño') === 'nino' && normalizeKey('CRÉDITO') === 'credito');
+check('normalizeKey empty', normalizeKey('   ') === '');
+check('cleanName collapse', cleanName('  Comida   rápida  ') === 'Comida rápida');
+check('cleanName truncates', cleanName('a'.repeat(30)) === 'a'.repeat(24));
+check('cleanName empty', cleanName('   ') === '');
+check('seed has 8', (() => {
+  const seed = seedCategories(() => 'x');
+  return seed.length === 8 && seed.filter((c) => c.kind === 'expense').length === 6 && seed.filter((c) => c.kind === 'income').length === 2;
+})());
+
+// categories: add con duplicados, vacío y tope
+const base: { id: string; name: string; kind: 'expense' | 'income' }[] = [
+  { id: 'c1', name: 'Comida', kind: 'expense' },
+];
+const dup1 = addCategory(base, 'expense', 'COMIDA', 'n1');
+check('dup case reuses', dup1.created === false && dup1.category?.id === 'c1' && dup1.list.length === 1);
+const dup2 = addCategory(base, 'expense', '  comída ', 'n2');
+check('dup accent/space reuses', dup2.created === false && dup2.category?.id === 'c1');
+const crossKind = addCategory(base, 'income', 'Comida', 'n3');
+check('same word other kind creates', crossKind.created === true && crossKind.category?.id === 'n3' && crossKind.list.length === 2);
+const emptyAdd = addCategory(base, 'expense', '   ', 'n4');
+check('empty rejected', emptyAdd.created === false && emptyAdd.category === null && emptyAdd.reason === 'empty' && emptyAdd.list.length === 1);
+const full: { id: string; name: string; kind: 'expense' }[] = Array.from({ length: MAX_PER_KIND }, (_, i) => ({ id: `e${i}`, name: `Cat${i}`, kind: 'expense' as const }));
+const over = addCategory(full, 'expense', 'Otra', 'n5');
+check('limit 30 per kind', over.created === false && over.category === null && over.reason === 'limit' && over.list.length === MAX_PER_KIND);
+const otherKindOk = addCategory(full, 'income', 'Otra', 'n6');
+check('limit is per kind', otherKindOk.created === true);
+
+// categories: rename / remove / resolve / count
+const rlist = [
+  { id: 'r1', name: 'Comida', kind: 'expense' as const },
+  { id: 'r2', name: 'Taxi', kind: 'expense' as const },
+];
+const ren = renameCategory(rlist, 'r2', 'Transporte');
+check('rename ok', ren.ok === true && ren.list.find((c) => c.id === 'r2')?.name === 'Transporte');
+check('rename conflict', renameCategory(rlist, 'r2', 'comida').ok === false);
+check('rename empty', renameCategory(rlist, 'r2', '  ').ok === false);
+check('rename missing', renameCategory(rlist, 'zz', 'X').ok === false);
+check('rename same name ok', renameCategory(rlist, 'r1', 'Comida').ok === true);
+const rem = removeCategory(rlist, 'r1');
+check('remove filters', rem.removed === true && rem.list.length === 1);
+check('remove missing', removeCategory(rlist, 'zz').removed === false);
+check('resolve valid', resolveCategory(rlist, 'r1')?.name === 'Comida');
+check('resolve undefined/empty/missing', resolveCategory(rlist) === null && resolveCategory(rlist, '') === null && resolveCategory(rlist, 'zz') === null);
+check('countByCategory', countByCategory(
+  [{ categoryId: 'r1' }, {}, { categoryId: 'r1' }, { categoryId: 'other' }],
+  'r1',
+) === 2);
+
+// categories: resumen ordenado, huérfanos agrupados, pcts suman 100.0
+const slist = [
+  { id: 's1', name: 'Comida', kind: 'expense' as const },
+  { id: 's2', name: 'Taxi', kind: 'expense' as const },
+];
+const srows = [
+  { amount: '100', categoryId: 's1' },
+  { amount: '50', categoryId: 's2' },
+  { amount: '30' },
+  { amount: '5', categoryId: 'zzz-huerfano' },
+  { amount: 'abc', categoryId: 's1' },
+  { amount: '', categoryId: 's2' },
+  { amount: '0', categoryId: 's1' },
+  { amount: '-10', categoryId: 's1' },
+];
+const sum = summarizeByCategory(srows, slist);
+check('summary order desc', sum.map((s) => s.id).join(',') === 's1,s2,');
+check('summary orphan grouped', (() => {
+  const none = sum.find((s) => s.id === null);
+  return none?.name === 'Sin categoría' && none.total === 35;
+})());
+check('summary pcts sum ~100', Math.abs(sum.reduce((a, s) => a + s.pct, 0) - 100) < 0.05);
+check('summary empty', summarizeByCategory([], slist).length === 0 && summarizeByCategory([{ amount: '0' }], slist).length === 0);
+check('dedupe collapses', dedupeCategories([
+  { id: 'a', name: 'Comida', kind: 'expense' as const },
+  { id: 'b', name: 'COMIDA', kind: 'expense' as const },
+  { id: 'c', name: 'Comida', kind: 'income' as const },
+]).length === 2);
+
+// categories: storage (mock localStorage ya instalado arriba)
+memStore.clear();
+const seeded = seedCategoriesIfNeeded();
+check('seed once has 8', seeded.length === 8);
+const seededAgain = seedCategoriesIfNeeded();
+check('seed idempotent', seededAgain.length === 8 && seededAgain[0].id === seeded[0].id);
+check('seed respects existing', (() => {
+  memStore.clear();
+  saveCategories([{ id: 'mine', name: 'Mía', kind: 'expense' }]);
+  const got = seedCategoriesIfNeeded();
+  return got.length === 1 && got[0].id === 'mine';
+})());
+memStore.set('gfp:categories', 'no-es-json{{{');
+check('corrupt json safe', loadCategories().length === 0);
+memStore.set('gfp:categories', JSON.stringify([
+  { id: 'ok1', name: '  Comida  ', kind: 'expense' },
+  { id: '', name: 'SinId', kind: 'expense' },
+  { id: 'ok2', name: '', kind: 'expense' },
+  { id: 'ok3', name: 'X', kind: 'weird' },
+  { id: 'ok4', name: 'COMIDA', kind: 'expense' },
+  'no-objeto',
+  null,
+]));
+check('sanitize + dedupe', (() => {
+  const got = loadCategories();
+  return got.length === 1 && got[0].id === 'ok1' && got[0].name === 'Comida';
+})());
+(globalThis as Record<string, unknown>).localStorage = {
+  getItem: () => { throw new Error('bloqueado'); },
+  setItem: () => { throw new Error('bloqueado'); },
+  removeItem: () => { throw new Error('bloqueado'); },
+};
+check('storage down safe', (() => {
+  try {
+    // Sin persistencia: lectura vacía pero la app sigue funcionando en memoria.
+    return loadCategories().length === 0 && seedCategoriesIfNeeded().length === 8;
+  } catch {
+    return false;
+  }
+})());
+(globalThis as Record<string, unknown>).localStorage = {
+  getItem: (k: string) => (memStore.has(k) ? memStore.get(k) : null),
+  setItem: (k: string, v: string) => {
+    memStore.set(k, String(v));
+  },
+  removeItem: (k: string) => {
+    memStore.delete(k);
+  },
+};
+
+// categories: buildMovement propaga sin tocar validación
+check('build keeps category', buildMovement({ name: 'X', amount: '10', paymentType: 'efectivo', categoryId: 's1' }).categoryId === 's1');
+check('build omits empty category', !('categoryId' in buildMovement({ name: 'X', amount: '10', paymentType: 'efectivo', categoryId: '' })));
+check('build omits absent category', !('categoryId' in buildMovement({ name: 'X', amount: '10', paymentType: 'efectivo' })));
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

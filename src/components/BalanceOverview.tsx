@@ -1,7 +1,8 @@
 import { Pencil, RotateCcw } from 'lucide-react';
-import type { AppMode, DayTotals } from '../types/finance';
+import type { AppMode, Category, DayTotals } from '../types/finance';
 import type { Period } from '../utils/periods';
 import { fmtMoney, type PeriodBalance } from '../utils/calculations';
+import { summarizeByCategory } from '../utils/categories';
 import { formatLong } from '../utils/dates';
 
 interface Props {
@@ -16,6 +17,9 @@ interface Props {
   onResetBase: () => void;
   /** Solo daily: movimientos de hoy como dato secundario. */
   today: DayTotals | null;
+  /** Gastos a resumir por categoría (período actual, o día abierto/hoy en Daily). */
+  categoryRows: { amount: string; categoryId?: string }[];
+  categories: Category[];
 }
 
 /**
@@ -32,12 +36,15 @@ export const BalanceOverview = ({
   editLabel,
   onResetBase,
   today,
+  categoryRows,
+  categories,
 }: Props) => {
   const isDaily = mode === 'daily';
   const positive = balance.available >= 0;
   const barClass =
     balance.percentUsed > 90 ? 'bar-danger' : balance.percentUsed > 70 ? 'bar-warn' : 'bar-ok';
   const eyebrow = isDaily ? 'Saldo actual' : period.label;
+  const breakdown = summarizeByCategory(categoryRows, categories);
 
   return (
     <section className="balance-card" aria-label={isDaily ? 'Saldo actual' : `Balance ${period.label}`}>
@@ -127,6 +134,37 @@ export const BalanceOverview = ({
           </strong>
         </p>
       )}
+
+      <div className="cat-breakdown">
+        <p className="mini-label">En qué se va tu dinero</p>
+        {breakdown.length === 0 ? (
+          <p className="mov-empty">Categoriza tus gastos para ver en qué se va tu dinero.</p>
+        ) : (
+          <ul className="cat-breakdown-list">
+            {breakdown.map((item) => (
+              <li key={item.id ?? 'none'} className="cat-breakdown-row">
+                <span className="cat-breakdown-top">
+                  <span className="cat-breakdown-name">{item.name}</span>
+                  <span className="cat-breakdown-meta">
+                    {item.pct.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% · $
+                    {fmtMoney(item.total)}
+                  </span>
+                </span>
+                <span
+                  className="cat-breakdown-bar"
+                  role="progressbar"
+                  aria-valuenow={item.pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuetext={`${item.name}: ${item.pct}%`}
+                >
+                  <span className="cat-breakdown-fill" style={{ width: `${item.pct}%` }} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 };

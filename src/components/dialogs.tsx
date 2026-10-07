@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { CircleDollarSign, MinusCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, CircleDollarSign, MinusCircle, Plus, X } from 'lucide-react';
 import type { Notice } from '../hooks/useFinance';
-import type { PaymentType } from '../types/finance';
+import type { Category, CategoryKind, PaymentType } from '../types/finance';
 import {
   EMPTY_MOVEMENT,
   validateMovement,
@@ -10,6 +10,47 @@ import {
 } from '../utils/movements';
 import { PAYMENT_OPTIONS } from '../utils/constants';
 import { todayISO } from '../utils/dates';
+
+/**
+ * Trampa de foco mínima para modales: cicla Tab dentro del contenedor
+ * y devuelve el foco al elemento que abrió al cerrar. No roba el foco
+ * inicial (los inputs usan autoFocus), solo lo contiene y lo retorna.
+ */
+export const useFocusTrap = (active: boolean) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const openerRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    openerRef.current = document.activeElement;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const root = containerRef.current;
+      if (!root) return;
+      const items = [...root.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      )];
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      const opener = openerRef.current;
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, [active]);
+
+  return containerRef;
+};
 
 /** Toasts no bloqueantes (sustituyen alert/confirm nativos). */
 export const Toasts = ({ notices }: { notices: Notice[] }) => (
@@ -118,6 +159,10 @@ interface RegisterModalProps {
   isEditing: boolean;
   initial: MovementInput;
   incomeLabel: string;
+  categories: Category[];
+  /** Crea (o reutiliza) y retorna la categoría, o null si se rechazó. */
+  onAddCategory: (kind: CategoryKind, name: string) => Category | null;
+  onManageCategories: () => void;
   onKindChange: (kind: MovementKind) => void;
   onSave: (kind: MovementKind, input: MovementInput) => boolean;
   onClose: () => void;
@@ -132,6 +177,9 @@ export const RegisterModal = ({
   isEditing,
   initial,
   incomeLabel,
+  categories,
+  onAddCategory,
+  onManageCategories,
   onKindChange,
   onSave,
   onClose,
@@ -139,13 +187,21 @@ export const RegisterModal = ({
   const [name, setName] = useState(initial.name);
   const [amount, setAmount] = useState(initial.amount);
   const [payment, setPayment] = useState<PaymentType>(initial.paymentType);
+  const [categoryId, setCategoryId] = useState(initial.categoryId ?? '');
+  const [showCreator, setShowCreator] = useState(false);
+  const [creatorName, setCreatorName] = useState('');
   const [error, setError] = useState('');
+  const selectRef = useRef<HTMLSelectElement | null>(null);
+  const trapRef = useFocusTrap(open);
 
   useEffect(() => {
     if (open) {
       setName(initial.name);
       setAmount(initial.amount);
       setPayment(initial.paymentType);
+      setCategoryId(initial.categoryId ?? '');
+      setShowCreator(false);
+      setCreatorName('');
       setError('');
     }
   }, [open, initial]);
@@ -161,9 +217,18 @@ export const RegisterModal = ({
 
   if (!open) return null;
   const isIncome = kind === 'income';
+  const catKind: CategoryKind = isIncome ? 'income' : 'expense';
+  const catOptions = categories.filter((c) => c.kind === catKind);
+  // Huérfano (categoría eliminada) → se muestra "Sin categoría".
+  const selectValue = catOptions.some((c) => c.id === categoryId) ? categoryId : '';
 
   const submit = () => {
-    const input: MovementInput = { name, amount, paymentType: payment };
+    const input: MovementInput = {
+      name,
+      amount,
+      paymentType: payment,
+      ...(selectValue ? { categoryId: selectValue } : {}),
+    };
     const validation = validateMovement(input);
     if (validation) {
       setError(validation);
@@ -173,13 +238,33 @@ export const RegisterModal = ({
       setName(EMPTY_MOVEMENT.name);
       setAmount(EMPTY_MOVEMENT.amount);
       setPayment(EMPTY_MOVEMENT.paymentType);
+      setCategoryId('');
+      setShowCreator(false);
+      setCreatorName('');
       setError('');
+    }
+  };
+
+  const cancelCreator = () => {
+    setShowCreator(false);
+    setCreatorName('');
+    selectRef.current?.focus();
+  };
+
+  const confirmCreator = () => {
+    const created = onAddCategory(catKind, creatorName);
+    // null = rechazado (vacío o tope): el hook ya avisó, el creador sigue abierto.
+    if (created) {
+      setCategoryId(created.id);
+      setShowCreator(false);
+      setCreatorName('');
+      selectRef.current?.focus();
     }
   };
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="register-title">
-      <div className="modal-box">
+      <div className="modal-box" ref={trapRef}>
         <p className="eyebrow">{dayLabel}</p>
         <h2 id="register-title" className="modal-title-sm">
           {isEditing ? 'Editar movimiento' : isIncome ? 'Registrar entrada' : 'Registrar gasto'}
@@ -263,6 +348,88 @@ export const RegisterModal = ({
             </option>
           ))}
         </select>
+
+        <div className="form-row-between">
+          <label className="form-label form-label-inline" htmlFor="mov-cat">
+            Categoría (opcional)
+          </label>
+          <button type="button" className="link-btn" onClick={onManageCategories}>
+            Gestionar
+          </button>
+        </div>
+        <div className="cat-field">
+          <select
+            id="mov-cat"
+            ref={selectRef}
+            value={selectValue}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="input-dark select-dark cat-select"
+          >
+            <option value="">Sin categoría</option>
+            {catOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {!showCreator && (
+            <button
+              type="button"
+              className="icon-btn-44"
+              title="Nueva categoría"
+              aria-label="Nueva categoría"
+              onClick={() => {
+                setCreatorName('');
+                setShowCreator(true);
+              }}
+            >
+              <Plus size={18} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {showCreator && (
+          <div className="cat-creator">
+            <input
+              type="text"
+              value={creatorName}
+              onChange={(e) => setCreatorName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  // Crear la categoría; NUNCA guarda el movimiento.
+                  e.preventDefault();
+                  e.stopPropagation();
+                  confirmCreator();
+                } else if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  cancelCreator();
+                }
+              }}
+              autoFocus
+              placeholder="Nombre de la categoría"
+              maxLength={24}
+              aria-label="Nombre de la nueva categoría"
+              className="input-dark cat-creator-input"
+            />
+            <button
+              type="button"
+              className="icon-btn-44 icon-btn-confirm"
+              aria-label="Crear categoría"
+              title="Crear categoría"
+              onClick={confirmCreator}
+            >
+              <Check size={18} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn-44"
+              aria-label="Cancelar nueva categoría"
+              title="Cancelar"
+              onClick={cancelCreator}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        )}
 
         <div className="modal-actions">
           <button type="button" className="btn-ghost" onClick={onClose}>

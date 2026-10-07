@@ -12,7 +12,9 @@ con estado central en `hooks/useFinance.ts` y persistencia en `localStorage`.
 | Pieza | Archivo | Rol |
 |---|---|---|
 | Shell / páginas (una sola) | `src/App.tsx` | Topbar, toolbar, acordeón de días, modales, toasts |
-| Estado + reglas | `src/hooks/useFinance.ts` | Días, modo, salario, saldo inicial, período, CRUD |
+| Estado + reglas | `src/hooks/useFinance.ts` | Días, modo, salario, saldo inicial, categorías, período, CRUD |
+| Lógica categorías | `src/utils/categories.ts` | `normalizeKey`, `cleanName`, `add/rename/remove`, `resolveCategory`, `summarizeByCategory`, semilla |
+| Gestión categorías | `src/components/CategoriesModal.tsx` | Renombrar/eliminar por tipo con confirmación |
 | Tema | `src/hooks/useTheme.ts` | Claro/oscuro en `<html data-theme>`, persiste `gfp:theme` |
 | Instalación PWA | `src/hooks/usePwaInstall.ts` | Botón Instalar dinámico |
 | Onboarding / cambio de modo | `src/components/ModeSelector.tsx` | Wizard Hoy/Quincena/Mes + salario |
@@ -80,9 +82,9 @@ MoneyRow { id, name, amount: string, paymentType: efectivo|debito|credito|transf
 ### F5 — Registrar movimiento (gasto / entrada)
 
 1. Dentro de un día expandido: **Registrar gasto $** (rojo suave) o **Registrar entrada $** (verde dinero).
-2. `RegisterModal`: segmentado Gasto/Entrada (solo al crear), descripción (opcional), **monto $ > 0** (obligatorio, Enter guarda), método de pago (opcional).
-3. `saveMovement` valida (`validateMovement`), crea la fila con id único (`buildMovement`) y la inserta (`upsertMovement`).
-4. Toast `Gasto registrado.` / `Entrada registrada.` y **recálculo instantáneo** de: lista del día, chip del acordeón, `DaySummary` y `BalanceOverview` (+ barra de período si aplica).
+2. `RegisterModal`: segmentado Gasto/Entrada (solo al crear), descripción (opcional), **monto $ > 0** (obligatorio, Enter guarda), método de pago (opcional), **categoría (opcional)**: select filtrado por tipo ("Sin categoría" por defecto) + botón + (creador en línea: Enter crea y selecciona, Escape cancela) + enlace Gestionar.
+3. `saveMovement` valida (`validateMovement`), crea la fila con id único (`buildMovement`, propaga `categoryId`) y la inserta (`upsertMovement`).
+4. Toast `Gasto registrado.` / `Entrada registrada.` y **recálculo instantáneo** de: lista del día (con chip de categoría si tiene válida), chip del acordeón, `DaySummary` y `BalanceOverview` (+ barra de período y bloque de categorías si aplica).
 
 ### F6 — Editar movimiento
 
@@ -119,9 +121,18 @@ days (estado) → period = getCurrentPeriod(modo, hoy)
 
 ### F9 — Exportar (TXT / Excel)
 
-- Toolbar → **TXT**: texto plano con todos los días, movimientos y totales por día (`finanzas_AAAA-MM-DD.txt`).
-- Toolbar → **Excel**: libro real con hojas `Movimientos` y `Resumen por día` (`finanzas_AAAA-MM-DD.xlsx`).
+- Toolbar → **TXT**: texto plano con todos los días, movimientos (con `Categoría: X` o `Sin categoría`) y totales por día (`finanzas_AAAA-MM-DD.txt`).
+- Toolbar → **Excel**: libro real con hojas `Movimientos` (columna `Categoría`) y `Resumen por día` (`finanzas_AAAA-MM-DD.xlsx`).
 - Botones deshabilitados si no hay días. Descarga + toast de confirmación.
+
+### F13 — Categorías opcionales
+
+1. Al registrar (F5): el select muestra las categorías del tipo (semilla inicial 6 gastos + 2 ingresos, editable); "Sin categoría" es el defecto y no agrega pasos obligatorios.
+2. Botón **+** junto al select → input en línea (foco automático): Enter crea y deja seleccionada (nunca guarda el movimiento), Escape cancela y devuelve el foco al select. Nombre duplicado (sin importar mayúsculas/tildes/espacios) → se reutiliza con aviso. Tope 30 por tipo.
+3. Enlace **Gestionar** → `CategoriesModal`: renombrar (conflictos rechazados) y eliminar por tipo; eliminar pide confirmación indicando cuántos movimientos quedarán "Sin categoría" (los movimientos nunca se borran).
+4. Lista del día: chip con el nombre solo si la categoría es válida (huérfanos no muestran chip).
+5. `BalanceOverview`, bloque **En qué se va tu dinero**: gastos del período actual (Quincena/Mes) o del día abierto/hoy (Hoy) resumidos por categoría (`Nombre · NN% · $monto` + barra con texto accesible); "Sin categoría" sin tono de error; línea "Categoriza tus gastos…" si no hay nada categorizado.
+6. Persistencia: `gfp:categories` + flag `gfp:categories-ready`; saneo de corruptos/duplicados/tope al cargar; movimientos viejos sin `categoryId` funcionan igual.
 
 ### F10 — Tema claro / oscuro
 
@@ -156,9 +167,13 @@ days (estado) → period = getCurrentPeriod(modo, hoy)
 | `addToday` | `() => void` | Atajo de hoy (abre el existente si ya está). |
 | `removeDay` | `(id: string) => void` | Elimina el día. |
 | `toggleExpand` | `(id: string) => void` | Acordeón (un día abierto a la vez). |
-| `saveMovement` | `(dayId, kind, input, rowId?) => boolean` | Crea/edita validado + toast. |
+| `saveMovement` | `(dayId, kind, input, rowId?) => boolean` | Crea/edita validado + toast (propaga `categoryId` opcional). |
 | `removeRow` | `(dayId, kind, rowId) => void` | Elimina + toast. |
 | `clearAll` | `() => void` | Vacía días, conserva modo/montos. |
+| `addCategory` | `(kind, rawName) => Category \| null` | Crea o reutiliza + toast (creada / ya existía / tope / vacío). |
+| `renameCategory` | `(id, rawName) => boolean` | Renombra + toast (conflictos rechazados). |
+| `removeCategory` | `(id) => number` | Elimina sin tocar movimientos; retorna afectados. |
+| `countMovementsWithCategory` | `(id) => number` | Conteo para el ConfirmDialog previo. |
 
 Derivados (memoizados): `totals`, `period`, `periodDays`, `periodTotals`, `todayTotals`, `isSalaryMode`.
 
@@ -173,11 +188,15 @@ Derivados (memoizados): `totals`, `period`, `periodDays`, `periodTotals`, `today
 
 ### `utils/movements.ts` (puro)
 
-`validateMovement` (monto > 0), `buildMovement` (id + normaliza), `upsertMovement` (inserta/actualiza), `removeMovement`, `kindToRows`.
+`validateMovement` (monto > 0, categoría no interfiere), `buildMovement` (id + normaliza + propaga `categoryId`), `upsertMovement` (inserta/actualiza), `removeMovement`, `kindToRows`.
+
+### `utils/categories.ts` (puro, nuevo v1.2)
+
+`normalizeKey`, `cleanName`, `seedCategories`, `addCategory` (crea/reutiliza/rechaza), `renameCategory`, `removeCategory` (nunca toca movimientos), `resolveCategory` (huérfano → null), `countByCategory`, `summarizeByCategory` (orden desc, pcts suman 100.0), `dedupeCategories`, `MAX_PER_KIND = 30`.
 
 ### `utils/storage.ts`
 
-Lectura/escritura segura (`try/catch`) de `gfp:days-v2`, `gfp:mode`, `gfp:salary-biweekly`, `gfp:salary-monthly`, `gfp:theme`, `gfp:initial`; `gfp:salary` legacy solo como semilla de migración única (`gfp:salaries-ready`); `saveSalaryForMode` (no borra en Daily), `resetSalaryForMode`, `resetInitialBalance`, `clearDays`; sanea filas/días corruptos.
+Lectura/escritura segura (`try/catch`) de `gfp:days-v2`, `gfp:mode`, `gfp:salary-biweekly`, `gfp:salary-monthly`, `gfp:theme`, `gfp:initial`, `gfp:categories`; `gfp:salary` legacy solo como semilla de migración única (`gfp:salaries-ready`); semilla de categorías idempotente (`gfp:categories-ready`); `saveSalaryForMode` (no borra en Daily), `resetSalaryForMode`, `resetInitialBalance`, `clearDays`; sanea filas/días/categorías corruptos (duplicados colapsados, tope 30/tipo).
 
 ### `utils/modeFlow.ts` · `utils/dates.ts` · `utils/constants.ts` · `utils/exportUtils.ts`
 
@@ -196,6 +215,8 @@ Lectura/escritura segura (`try/catch`) de `gfp:days-v2`, `gfp:mode`, `gfp:salary
 | `gfp:salary` | Legacy: semilla de migración única | Nunca se escribe ya |
 | `gfp:salaries-ready` | Flag de migración | Nunca |
 | `gfp:initial` | Saldo inicial Daily | Reiniciar (en Daily) |
+| `gfp:categories` | Categorías (JSON saneado) | Solo al gestionar (renombrar/eliminar) |
+| `gfp:categories-ready` | Flag de semilla (6+2) | Nunca |
 | `gfp:theme` | `light`/`dark` | Nunca |
 
 > Jamás se persisten: períodos, disponibles, porcentajes ni totales (todo derivado).

@@ -1248,6 +1248,197 @@ body {
   }
 }
 
+/* ══ CATEGORÍAS ══ */
+.cat-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  margin-left: 8px;
+  border-radius: 99px;
+  background: var(--color-surface3);
+  color: var(--color-text-sec);
+  vertical-align: 1px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.form-label-inline {
+  margin: 12px 0 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-lime);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  padding: 12px 4px 0;
+  white-space: nowrap;
+}
+
+.cat-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.cat-select {
+  margin: 0;
+}
+
+.icon-btn-44 {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 11px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface2);
+  color: var(--color-lime);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-btn-44:hover {
+  border-color: var(--color-lime);
+}
+
+.icon-btn-confirm {
+  background: var(--color-lime);
+  border-color: transparent;
+  color: #fff;
+}
+
+:root[data-theme='dark'] .icon-btn-confirm {
+  color: #06130e;
+}
+
+.cat-creator {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.cat-creator-input {
+  margin: 0;
+}
+
+/* Bloque "En qué se va tu dinero" */
+.cat-breakdown {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cat-breakdown-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cat-breakdown-row {
+  display: block;
+}
+
+.cat-breakdown-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.cat-breakdown-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-breakdown-meta {
+  font-size: 12.5px;
+  color: var(--color-text-sec);
+  white-space: nowrap;
+}
+
+.cat-breakdown-bar {
+  display: block;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--color-surface3);
+  overflow: hidden;
+}
+
+.cat-breakdown-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--color-lime);
+  transition: width 0.5s ease;
+}
+
+/* Filas del modal Gestionar */
+.cat-manage-list {
+  list-style: none;
+  margin: 10px 0 16px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface2);
+}
+
+.cat-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-bottom: 1px solid var(--color-border);
+  min-height: 56px;
+}
+
+.cat-manage-row:last-child {
+  border-bottom: none;
+}
+
+.cat-manage-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-manage-input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
 /* ══ RESPONSIVE FINO (móviles pequeños) ══ */
 @media (max-width: 400px) {
   .tool-main {

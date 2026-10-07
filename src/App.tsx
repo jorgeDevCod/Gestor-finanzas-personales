@@ -16,7 +16,7 @@ import {
   Trash2,
   Wallet,
 } from 'lucide-react';
-import type { AppMode, MoneyRow } from './types/finance';
+import type { AppMode, Category, MoneyRow } from './types/finance';
 import { useTheme } from './hooks/useTheme';
 import { useFinance, type Notice } from './hooks/useFinance';
 import { usePwaInstall } from './hooks/usePwaInstall';
@@ -24,9 +24,11 @@ import { MODE_CONFIG, paymentLabel } from './utils/constants';
 import { loadSalaryForMode } from './utils/storage';
 import { calculateTotals, fmtMoney, periodBalance } from './utils/calculations';
 import { EMPTY_MOVEMENT, kindToRows, type MovementInput, type MovementKind } from './utils/movements';
-import { formatLong } from './utils/dates';
+import { resolveCategory } from './utils/categories';
+import { formatLong, todayISO } from './utils/dates';
 import { exportToExcel, exportToTextFile } from './utils/exportUtils';
 import { BalanceOverview } from './components/BalanceOverview';
+import { CategoriesModal } from './components/CategoriesModal';
 import { DaySummary } from './components/DaySummary';
 import { ModeSelector } from './components/ModeSelector';
 import { AmountModal, ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
@@ -36,13 +38,16 @@ interface RegisterModalHostProps {
   movModal: { dayId: string; kind: MovementKind; rowId?: string } | null;
   days: DayEntry[];
   incomeSection: string;
+  categories: Category[];
+  onAddCategory: (kind: 'expense' | 'income', name: string) => Category | null;
+  onManageCategories: () => void;
   onKindChange: (kind: MovementKind) => void;
   onSave: (dayId: string, kind: MovementKind, input: MovementInput, rowId?: string) => boolean;
   onClose: () => void;
 }
 
 /** Resuelve día/fila del modal y lo renderiza (creación o edición). */
-const RegisterModalHost = ({ movModal, days, incomeSection, onKindChange, onSave, onClose }: RegisterModalHostProps) => {
+const RegisterModalHost = ({ movModal, days, incomeSection, categories, onAddCategory, onManageCategories, onKindChange, onSave, onClose }: RegisterModalHostProps) => {
   if (!movModal) return null;
   const day = days.find((d) => d.id === movModal.dayId);
   if (!day) return null;
@@ -59,10 +64,13 @@ const RegisterModalHost = ({ movModal, days, incomeSection, onKindChange, onSave
       isEditing={!!movModal.rowId}
       initial={
         row
-          ? { name: row.name, amount: row.amount, paymentType: row.paymentType }
+          ? { name: row.name, amount: row.amount, paymentType: row.paymentType, ...(row.categoryId ? { categoryId: row.categoryId } : {}) }
           : EMPTY_MOVEMENT
       }
       incomeLabel={incomeSection === 'Ingresos' ? 'Ingresos' : 'Entradas'}
+      categories={categories}
+      onAddCategory={onAddCategory}
+      onManageCategories={onManageCategories}
       onKindChange={onKindChange}
       onSave={(kind, input) => onSave(day.id, kind, input, movModal.rowId)}
       onClose={onClose}
@@ -74,13 +82,14 @@ interface MovementGroupProps {
   title: string;
   tone: 'income' | 'expense';
   rows: MoneyRow[];
+  categories: Category[];
   emptyText: string;
   onEdit: (row: MoneyRow) => void;
   onDelete: (row: MoneyRow) => void;
 }
 
 /** Lista compacta de movimientos con editar/eliminar (totales arriba en tiempo real). */
-const MovementGroup = ({ title, tone, rows, emptyText, onEdit, onDelete }: MovementGroupProps) => {
+const MovementGroup = ({ title, tone, rows, categories, emptyText, onEdit, onDelete }: MovementGroupProps) => {
   const isIncome = tone === 'income';
   return (
     <section aria-label={`${title} del día`}>
@@ -89,13 +98,18 @@ const MovementGroup = ({ title, tone, rows, emptyText, onEdit, onDelete }: Movem
         <p className="mov-empty">{emptyText}</p>
       ) : (
         <ul className="mov-list">
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const catName = resolveCategory(categories, row.categoryId)?.name;
+            return (
             <li key={row.id} className="mov-item">
               <span className={`mov-chip ${isIncome ? 'mov-chip-income' : 'mov-chip-expense'}`} aria-hidden="true">
                 {isIncome ? '+' : '−'}
               </span>
               <span className="mov-main">
-                <span className="mov-name">{row.name || 'Sin descripción'}</span>
+                <span className="mov-name">
+                  {row.name || 'Sin descripción'}
+                  {catName && <span className="cat-chip">{catName}</span>}
+                </span>
                 <span className="mov-meta">{paymentLabel(row.paymentType)}</span>
               </span>
               <span className={`mov-amount ${isIncome ? 'txt-income' : 'txt-expense'}`}>
@@ -120,7 +134,8 @@ const MovementGroup = ({ title, tone, rows, emptyText, onEdit, onDelete }: Movem
                 </button>
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>
@@ -149,6 +164,7 @@ const App = () => {
     expandedId,
     totals,
     period,
+    periodDays,
     periodTotals,
     todayTotals,
     confirmMode,
@@ -161,6 +177,11 @@ const App = () => {
     saveMovement,
     removeRow,
     clearAll,
+    categories,
+    addCategory,
+    renameCategory,
+    removeCategory,
+    countMovementsWithCategory,
   } = useFinance(notify);
 
   const [showModeSelector, setShowModeSelector] = useState(false);
@@ -170,6 +191,8 @@ const App = () => {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [movModal, setMovModal] = useState<{ dayId: string; kind: MovementKind; rowId?: string } | null>(null);
+  const [showCategories, setShowCategories] = useState(false);
+  const [catDelete, setCatDelete] = useState<{ id: string; name: string; affected: number } | null>(null);
 
   const mode: AppMode = appMode ?? 'daily';
   const modeConfig = MODE_CONFIG[mode];
@@ -179,6 +202,13 @@ const App = () => {
   const overviewBalance = isDaily
     ? periodBalance(initialBalance, totals, 0)
     : periodBalance(baseSalary, periodTotals, period.daysRemaining);
+
+  /** Gastos del bloque "En qué se va tu dinero": período actual, o día abierto/hoy en Daily. */
+  const openDay = days.find((d) => d.id === expandedId);
+  const todayDay = days.find((d) => d.dateISO === todayISO());
+  const breakdownRows = isDaily
+    ? ((openDay ?? todayDay)?.expenses ?? [])
+    : periodDays.flatMap((d) => d.expenses);
 
   const handleConfirmMode = (m: AppMode, salary: number) => {
     confirmMode(m, salary);
@@ -281,6 +311,8 @@ const App = () => {
             editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
             onResetBase={() => setConfirmReset(true)}
             today={isDaily ? todayTotals : null}
+            categoryRows={breakdownRows}
+            categories={categories}
           />
         )}
 
@@ -301,7 +333,7 @@ const App = () => {
               className="btn-ghost btn-sm"
               disabled={days.length === 0}
               onClick={() => {
-                exportToTextFile(days);
+                exportToTextFile(days, categories);
                 notify('success', 'Archivo TXT descargado.');
               }}
               title="Exportar todo a texto plano"
@@ -314,7 +346,7 @@ const App = () => {
               className="btn-ghost btn-sm"
               disabled={days.length === 0}
               onClick={() => {
-                exportToExcel(days);
+                exportToExcel(days, categories);
                 notify('success', 'Archivo Excel descargado.');
               }}
               title="Exportar todo a Excel"
@@ -409,6 +441,7 @@ const App = () => {
                         title="Gastos"
                         tone="expense"
                         rows={day.expenses}
+                        categories={categories}
                         emptyText="Sin gastos registrados."
                         onEdit={(row) => setMovModal({ dayId: day.id, kind: 'expense', rowId: row.id })}
                         onDelete={(row) => removeRow(day.id, 'expense', row.id)}
@@ -417,6 +450,7 @@ const App = () => {
                         title={modeConfig.incomeSection}
                         tone="income"
                         rows={day.incomes}
+                        categories={categories}
                         emptyText="Sin entradas registradas."
                         onEdit={(row) => setMovModal({ dayId: day.id, kind: 'income', rowId: row.id })}
                         onDelete={(row) => removeRow(day.id, 'income', row.id)}
@@ -469,6 +503,9 @@ const App = () => {
         movModal={movModal}
         days={days}
         incomeSection={modeConfig.incomeSection}
+        categories={categories}
+        onAddCategory={(kind, name) => addCategory(kind, name)}
+        onManageCategories={() => setShowCategories(true)}
         onKindChange={(kind) => setMovModal((m) => (m ? { ...m, kind } : m))}
         onSave={(dayId, kind, input, rowId) => {
           if (saveMovement(dayId, kind, input, rowId)) {
@@ -478,6 +515,34 @@ const App = () => {
           return false;
         }}
         onClose={() => setMovModal(null)}
+      />
+      <CategoriesModal
+        open={showCategories}
+        categories={categories}
+        onRename={(id, name) => renameCategory(id, name)}
+        onRequestDelete={(id) => {
+          const target = categories.find((c) => c.id === id);
+          if (!target) return;
+          setCatDelete({ id, name: target.name, affected: countMovementsWithCategory(id) });
+        }}
+        onClose={() => setShowCategories(false)}
+      />
+      <ConfirmDialog
+        open={catDelete !== null}
+        title="Eliminar categoría"
+        message={
+          catDelete
+            ? catDelete.affected > 0
+              ? `“${catDelete.name}” desaparecerá y ${catDelete.affected} ${catDelete.affected === 1 ? 'movimiento quedará' : 'movimientos quedarán'} sin categoría. No se borra ningún movimiento.`
+              : `“${catDelete.name}” desaparecerá de la lista. No se borra ningún movimiento.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        onConfirm={() => {
+          if (catDelete) removeCategory(catDelete.id);
+          setCatDelete(null);
+        }}
+        onCancel={() => setCatDelete(null)}
       />
       <ConfirmDialog
         open={confirmReset}

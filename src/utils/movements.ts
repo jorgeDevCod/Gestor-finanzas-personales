@@ -10,6 +10,8 @@ export interface MovementInput {
   name: string;
   amount: string;
   paymentType: PaymentType;
+  /** OPCIONAL. Ausente o vacío = "Sin categoría". No afecta la validación. */
+  categoryId?: string;
 }
 
 export const EMPTY_MOVEMENT: MovementInput = { name: '', amount: '', paymentType: '' };
@@ -21,12 +23,13 @@ export const validateMovement = (input: MovementInput): string | null => {
   return null;
 };
 
-/** Construye una fila con id único y monto normalizado. */
+/** Construye una fila con id único y monto normalizado. Propaga categoryId si viene. */
 export const buildMovement = (input: MovementInput): MoneyRow => ({
   id: uid(),
   name: input.name.trim(),
   amount: String(parseFloat(input.amount)),
   paymentType: input.paymentType,
+  ...(input.categoryId ? { categoryId: input.categoryId } : {}),
 });
 
 /** Inserta o actualiza (por id) un movimiento en su grupo. Función pura. */

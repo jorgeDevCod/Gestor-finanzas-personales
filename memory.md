@@ -1,8 +1,8 @@
 # MEMORY.MD — Gestor de Finanzas Personales (v1.1 períodos + caja)
 
 > **Ruta:** `C:\Users\Jpasapera\Downloads\proyectos\Gestor-finanzas-personales`
-> **Actualizado:** v1.1 — balances por período actual (diaria/quincenal/mensual) y Daily como caja en tiempo real.
-> **Tests:** `npm test` = `typecheck` + `lint` + `test:smoke` (45 checks) + `build` → todo verde.
+> **Actualizado:** v1.2 — categorías opcionales (gastos e ingresos) con resumen por período.
+> **Tests:** `npm test` = `typecheck` + `lint` + `test:smoke` (100+ checks) + `build` → todo verde.
 
 ---
 
@@ -43,14 +43,17 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── utils/exportUtils.ts    # exportToTextFile + exportToExcel (2 hojas), revokeObjectURL
     ├── hooks/useTheme.ts       # default light, <html data-theme>, persiste gfp:theme
     ├── hooks/usePwaInstall.ts  # beforeinstallprompt/appinstalled/standalone/iOS → visible + install()
-    ├── hooks/useFinance.ts     # confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll, setInitialBalance + period/periodDays/periodTotals/todayTotals (derivados, no persistidos)
+    ├── hooks/useFinance.ts     # días, modo, salarios, saldo inicial, categorías + period/periodTotals/todayTotals (derivados)
+    ├── types/finance.ts        # AppMode, PaymentType, MoneyRow (+categoryId?), DayEntry, Category, Theme, guards, uid
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
+    ├── utils/categories.ts       # normalizeKey, cleanName, add/rename/remove, resolveCategory, summarizeByCategory, seed (puras)
     ├── utils/modeFlow.ts         # needsSalaryStep: solo pedir monto si el modo no tiene (pura, testeada)
     └── components/
         ├── ModeSelector.tsx    # wizard modal 2 pasos (diaria directa / salario validado >0)
-        ├── BalanceOverview.tsx # balance del período (o caja Daily): disponible, progreso con texto, días restantes, por-día
+        ├── BalanceOverview.tsx # balance del período (o caja Daily) + "En qué se va tu dinero" por categoría
         ├── DaySummary.tsx      # 3 cifras en tiempo real (la lista editable vive arriba)
-        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal, AmountModal (cero alert/confirm nativos)
+        ├── CategoriesModal.tsx # renombrar/eliminar categorías por tipo (con confirmación)
+        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal (+categoría opcional), AmountModal, useFocusTrap
 ```
 
 **Eliminado (legacy):** `App.jsx`, `main.jsx`, los 5 `.jsx` + 3 `.js`, `vite.config.js`, `FeatureCard` (marketing), hero `Domina tus finanzas…` + triple `HEADER_FEATURES` (compactados a subtítulo), botón export por día (ahora global), `alert/confirm` nativos, parche timezone `+1 día`, keys por índice, `dist/` del build viejo (regenerado, ignorado en git).
@@ -67,7 +70,7 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 - `amount` string (input controlado) → `parseAmount` (`parseFloat || 0`, NaN→0).
 - `dateISO` local, orden lexicográfico = cronológico. Sin `Date` con hora.
 - IDs `crypto.randomUUID()` → keys estables; acordeón `expandedId` (un día abierto).
-- `localStorage`: `gfp:days-v2` (JSON ordenado), `gfp:mode`, `gfp:salary` (legacy, semilla de migración única), `gfp:salary-biweekly`, `gfp:salary-monthly` (independientes), `gfp:salaries-ready` (flag de migración), `gfp:theme`, `gfp:initial` (saldo inicial Daily). Períodos y balances **nunca** se persisten (derivados).
+- `localStorage`: `gfp:days-v2` (JSON ordenado), `gfp:mode`, `gfp:salary` (legacy, semilla de migración única), `gfp:salary-biweekly`, `gfp:salary-monthly` (independientes), `gfp:salaries-ready` (flag de migración), `gfp:theme`, `gfp:initial` (saldo inicial Daily), `gfp:categories` + `gfp:categories-ready` (semilla 6+2, idempotente). Períodos, balances y resúmenes **nunca** se persisten (derivados).
 
 ---
 
@@ -78,10 +81,10 @@ DayEntry { id: string; dateISO: 'YYYY-MM-DD'; incomes: MoneyRow[]; expenses: Mon
 | F0 | Onboarding | `appMode null` → modal `ModeSelector` paso 1 → `daily` = fin directo (salario 0) / `biweekly\|monthly` → paso 2 salario `>0` → `confirmMode` guarda + toast |
 | F1 | Cambiar modo | Icono ⚙ → elige modo y **entra directo** si ese modo ya tiene monto (`needsSalaryStep` por modo; Daily nunca borra nada). Modo sin monto → pide vacío solo para ese modo. `Editar salario/saldo` va directo al paso de monto; **Reiniciar** (con confirmación) pone el monto base a cero sin tocar movimientos. Días, salarios y saldo inicial intactos. |
 | F2 | Crear día | Toolbar `Hoy` (abre existente si duplicado, toast info) / `Fecha` → `DateModal` (`max=hoy`) → `createDay`: ISO válida, no futura, no duplicada → auto-expande + toast |
-| F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con editar/eliminar; recálculo instantáneo (sin filas vacías ni botones +) |
-| F4 | Balance del período (v1.1) | Daily: **Saldo actual** = `gfp:initial` + todos los ingresos − todos los gastos (caja global) + hoy como dato secundario. Quincena/mes: `disponible = salario + ingresos del período − gastos del período` (fuera del período no afecta) + `Gastado X de Y`, `% utilizado` con texto, días restantes y por-día (null si 0). Salario se suma una sola vez. |
+| F3 | Registrar movimientos | Por día: `Registrar gasto $` (rojo suave) / `Registrar entrada $` (verde dinero) → `RegisterModal` (segmentado gasto/entrada, descripción, monto >0, método, **categoría opcional** con creador + y enlace Gestionar, Enter guarda) → `saveMovement` valida + upsert con id → lista `MovementGroup` con chip de categoría + editar/eliminar; recálculo instantáneo |
+| F4 | Balance del período (v1.1) + categorías (v1.2) | Daily: **Saldo actual** = `gfp:initial` + todos los ingresos − todos los gastos (caja global) + hoy como dato secundario. Quincena/mes: `disponible = salario + ingresos del período − gastos del período` (fuera del período no afecta) + `Gastado X de Y`, `% utilizado` con texto, días restantes y por-día (null si 0). Salario se suma una sola vez. Bloque **En qué se va tu dinero**: gastos del alcance (período, o día abierto/hoy) por categoría con `Nombre · NN% · $monto` + barra con texto; "Sin categoría" sin tono de error; vacío de una línea si nada categorizado. |
 | F5 | Balance día | `DaySummary` en el acordeón: 3 cifras del día + nota ahorro/déficit (secundario en Daily) |
-| F6 | Export | Toolbar `TXT` (mismo formato legacy, `revokeObjectURL` corregido) / `Excel` (hojas `Movimientos` + `Resumen por día`) — siempre dataset completo |
+| F6 | Export | Toolbar `TXT` (columna `Categoría: X` / `Sin categoría`) / `Excel` (columna `Categoría` en hoja `Movimientos` + `Resumen por día`) — siempre dataset completo |
 | F7 | Borrar | `Borrar` → `ConfirmDialog` (Esc/Cancelar) → vacía días, conserva modo/salario/tema |
 | F8 | Tema | Toggle sol/luna en topbar → `data-theme` + `colorScheme` + `gfp:theme`; **claro por defecto**, script inline anti-flash |
 | F9 | Instalación PWA | Botón `Instalar` en topbar (pill esmeralda, entrada + glow pulsante): visible solo si no instalada (`beforeinstallprompt` capturado; en iOS muestra ayuda Compartir→Añadir). Al aceptar/`appinstalled`/standalone → se oculta solo |
@@ -115,7 +118,7 @@ Reglas: no futuro, no duplicados, `paymentType` opcional, salario >0 en salary-m
 | Archivo | Responsabilidad | Funciones clave |
 |---|---|---|
 | `App.tsx` | Shell, toolbar, acordeón, modales, toasts | `handleConfirmMode, handleDateConfirm` + todo `useFinance` |
-| `hooks/useFinance.ts` | Estado + reglas negocio | `confirmMode, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll` |
+| `hooks/useFinance.ts` | Estado + reglas negocio | `confirmMode, setInitialBalance, resetBase, createDay, addToday, removeDay, toggleExpand, saveMovement, removeRow, clearAll, addCategory, renameCategory, removeCategory, countMovementsWithCategory` |
 | `utils/movements.ts` | Lógica pura de movimientos | `validateMovement, buildMovement, upsertMovement, removeMovement, kindToRows` |
 | `hooks/useTheme.ts` | Tema claro/oscuro persistido | `toggle, setTheme` |
 | `hooks/usePwaInstall.ts` | Visibilidad y disparo de instalación | `visible, iosMode, install()` |
