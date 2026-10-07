@@ -1,4 +1,4 @@
-import { Pencil, RotateCcw } from 'lucide-react';
+import { ArrowLeftRight, Pencil, RotateCcw } from 'lucide-react';
 import type { AppMode, Category, DayTotals } from '../types/finance';
 import type { Period } from '../utils/periods';
 import { fmtMoney, type PeriodBalance } from '../utils/calculations';
@@ -15,6 +15,7 @@ interface Props {
   onEditBase: () => void;
   editLabel: string;
   onResetBase: () => void;
+  onChangeMode: () => void;
   /** Solo daily: movimientos de hoy como dato secundario. */
   today: DayTotals | null;
   /** Gastos a resumir por categoría (período actual, o día abierto/hoy en Daily). */
@@ -37,6 +38,7 @@ export const BalanceOverview = ({
   onEditBase,
   editLabel,
   onResetBase,
+  onChangeMode,
   today,
   categoryRows,
   categories,
@@ -59,6 +61,15 @@ export const BalanceOverview = ({
           </p>
         </div>
         <div className="balance-actions">
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={onChangeMode}
+            title="Cambiar modo de gestión"
+          >
+            <ArrowLeftRight size={13} aria-hidden="true" />
+            Modo
+          </button>
           <button type="button" className="btn-ghost btn-sm" onClick={onEditBase}>
             <Pencil size={13} aria-hidden="true" />
             {editLabel}

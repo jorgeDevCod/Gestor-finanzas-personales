@@ -374,8 +374,9 @@ const App = () => {
                   setShowModeSelector(true);
                 }
               }}
-              editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
-              onResetBase={() => setConfirmReset(true)}
+            editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
+            onResetBase={() => setConfirmReset(true)}
+            onChangeMode={openModePicker}
             today={isDaily ? todayTotals : null}
             categoryRows={breakdownRows}
             categories={categories}
