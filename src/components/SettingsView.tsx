@@ -1,10 +1,12 @@
 import {
   ChevronRight,
+  CircleHelp,
   Download,
   FileSpreadsheet,
   FileText,
   Moon,
   Sun,
+  Tags,
   Trash2,
   Wallet,
 } from 'lucide-react';
@@ -20,6 +22,8 @@ interface Props {
   hasDays: boolean;
   onExportTxt: () => void;
   onExportXls: () => void;
+  onOpenCategories: () => void;
+  onOpenGuide: () => void;
   onClearRequest: () => void;
 }
 
@@ -34,6 +38,8 @@ export const SettingsView = ({
   hasDays,
   onExportTxt,
   onExportXls,
+  onOpenCategories,
+  onOpenGuide,
   onClearRequest,
 }: Props) => (
   <div className="settings">
@@ -71,6 +77,26 @@ export const SettingsView = ({
           <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
         </button>
       )}
+      <button type="button" className="set-row" onClick={onOpenCategories}>
+        <span className="set-icon" aria-hidden="true">
+          <Tags size={18} />
+        </span>
+        <span className="set-main">
+          <span className="set-label">Categorías</span>
+          <span className="set-value">Crear, renombrar o eliminar</span>
+        </span>
+        <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
+      </button>
+      <button type="button" className="set-row" onClick={onOpenGuide}>
+        <span className="set-icon" aria-hidden="true">
+          <CircleHelp size={18} />
+        </span>
+        <span className="set-main">
+          <span className="set-label">Cómo usar la app</span>
+          <span className="set-value">Guía en 30 segundos</span>
+        </span>
+        <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
+      </button>
     </section>
 
     <section aria-label="Datos">

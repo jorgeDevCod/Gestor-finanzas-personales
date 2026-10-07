@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarPlus,
   ChevronDown,
@@ -18,9 +18,10 @@ import { useTheme } from './hooks/useTheme';
 import { useFinance, type Notice } from './hooks/useFinance';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { MODE_CONFIG, paymentLabel } from './utils/constants';
-import { loadSalaryForMode, loadView, saveView } from './utils/storage';
+import { loadSalaryForMode, loadView, saveView, hasSeenGuide, markGuideSeen } from './utils/storage';
 import { calculateTotals, fmtMoney, periodBalance } from './utils/calculations';
-import { EMPTY_MOVEMENT, kindToRows, type MovementInput, type MovementKind } from './utils/movements';
+import { distinctDates, fullDashboard } from './utils/dashboard';
+import { EMPTY_MOVEMENT, kindToRows, lastPrefs, type MovementInput, type MovementKind } from './utils/movements';
 import { resolveCategory } from './utils/categories';
 import { formatLong, todayISO } from './utils/dates';
 import { exportToExcel, exportToTextFile } from './utils/exportUtils';
@@ -30,7 +31,7 @@ import { DaySummary } from './components/DaySummary';
 import { ModeSelector } from './components/ModeSelector';
 import { SettingsView } from './components/SettingsView';
 import { TabBar } from './components/TabBar';
-import { AmountModal, ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
+import { AmountModal, ConfirmDialog, DateModal, GuideModal, RegisterModal, Toasts } from './components/dialogs';
 import type { DayEntry } from './types/finance';
 
 interface RegisterModalHostProps {
@@ -47,13 +48,31 @@ interface RegisterModalHostProps {
 
 /** Resuelve día/fila del modal y lo renderiza (creación o edición). */
 const RegisterModalHost = ({ movModal, days, incomeSection, categories, onAddCategory, onManageCategories, onKindChange, onSave, onClose }: RegisterModalHostProps) => {
+  const initialKey = movModal ? `${movModal.dayId}|${movModal.kind}|${movModal.rowId ?? 'new'}` : '';
+  // Estable mientras el modal está abierto: evita que re-renders (toasts)
+  // reinicien lo que el usuario escribe.
+  const initial = useMemo((): MovementInput => {
+    if (!movModal) return EMPTY_MOVEMENT;
+    const day = days.find((d) => d.id === movModal.dayId);
+    const row = movModal.rowId
+      ? day?.[kindToRows(movModal.kind)].find((r) => r.id === movModal.rowId)
+      : undefined;
+    if (row) {
+      return {
+        name: row.name,
+        amount: row.amount,
+        paymentType: row.paymentType,
+        ...(row.categoryId ? { categoryId: row.categoryId } : {}),
+      };
+    }
+    // Creación: hereda pago + categoría del último movimiento del tipo.
+    return { ...EMPTY_MOVEMENT, ...lastPrefs(days, movModal.kind) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKey]);
   if (!movModal) return null;
   const day = days.find((d) => d.id === movModal.dayId);
   if (!day) return null;
-  const row = movModal.rowId
-    ? day[kindToRows(movModal.kind)].find((r) => r.id === movModal.rowId)
-    : undefined;
-  if (movModal.rowId && !row) return null;
+  if (movModal.rowId && !day[kindToRows(movModal.kind)].some((r) => r.id === movModal.rowId)) return null;
   return (
     <RegisterModal
       open
@@ -61,11 +80,7 @@ const RegisterModalHost = ({ movModal, days, incomeSection, categories, onAddCat
       kind={movModal.kind}
       allowKindChange={!movModal.rowId}
       isEditing={!!movModal.rowId}
-      initial={
-        row
-          ? { name: row.name, amount: row.amount, paymentType: row.paymentType, ...(row.categoryId ? { categoryId: row.categoryId } : {}) }
-          : EMPTY_MOVEMENT
-      }
+      initial={initial}
       incomeLabel={incomeSection === 'Ingresos' ? 'Ingresos' : 'Entradas'}
       categories={categories}
       onAddCategory={onAddCategory}
@@ -227,15 +242,46 @@ const App = () => {
     window.scrollTo({ top: 0 });
   }, []);
 
-  /** Desde Resumen: asegura el día de hoy y abre el registro directo. */
+  /** Desde cualquier vista: asegura el día de hoy y abre el registro directo. */
   const quickRegister = useCallback(() => {
     const iso = todayISO();
     const existing = days.find((d) => d.dateISO === iso);
     const id = existing ? existing.id : createDay(iso);
     if (!id) return;
-    changeView('movimientos');
     setMovModal({ dayId: id, kind: 'expense' });
-  }, [changeView, createDay, days]);
+  }, [createDay, days]);
+
+  const [showGuide, setShowGuide] = useState(false);
+
+  // Guía automática una sola vez, tras completar el onboarding.
+  useEffect(() => {
+    if (appMode && !hasSeenGuide()) setShowGuide(true);
+  }, [appMode]);
+
+  const closeGuide = useCallback(() => {
+    markGuideSeen();
+    setShowGuide(false);
+  }, []);
+
+  /** Métricas del alcance visible (período, o todo en Daily). */
+  const metricScope = isDaily ? days : periodDays;
+  const metricElapsed = isDaily ? distinctDates(metricScope) : period.elapsedDays;
+  const metricTotal = isDaily ? Math.max(metricElapsed, 1) : period.totalDays;
+  const dash = fullDashboard(days, metricScope, metricElapsed, metricTotal, todayISO());
+  const metricItems = isDaily
+    ? [
+        { label: 'Promedio diario', value: `$${fmtMoney(dash.avgDailyExpense)}` },
+        { label: 'Movimientos', value: `${dash.movementCount}` },
+        { label: 'Racha', value: `${dash.streakDays} ${dash.streakDays === 1 ? 'día' : 'días'}` },
+      ]
+    : [
+        { label: 'Promedio diario', value: `$${fmtMoney(dash.avgDailyExpense)}` },
+        {
+          label: 'Proyección al cierre',
+          value: dash.projectedSpend !== null ? `$${fmtMoney(dash.projectedSpend)}` : '—',
+        },
+        { label: 'Racha', value: `${dash.streakDays} ${dash.streakDays === 1 ? 'día' : 'días'}` },
+      ];
 
   const handleExportTxt = useCallback(() => {
     exportToTextFile(days, categories);
@@ -330,10 +376,11 @@ const App = () => {
               }}
               editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
               onResetBase={() => setConfirmReset(true)}
-              today={isDaily ? todayTotals : null}
-              categoryRows={breakdownRows}
-              categories={categories}
-            />
+            today={isDaily ? todayTotals : null}
+            categoryRows={breakdownRows}
+            categories={categories}
+            metrics={dash.movementCount > 0 ? metricItems : []}
+          />
 
             {days.length === 0 && (
               <div className="empty-state" role="status">
@@ -474,12 +521,27 @@ const App = () => {
             hasDays={days.length > 0}
             onExportTxt={handleExportTxt}
             onExportXls={handleExportXls}
+            onOpenCategories={() => setShowCategories(true)}
+            onOpenGuide={() => setShowGuide(true)}
             onClearRequest={() => setConfirmClear(true)}
           />
         )}
       </main>
 
       {appMode && <TabBar view={view} onChange={changeView} />}
+
+      {appMode && (
+        <button
+          type="button"
+          className="fab"
+          onClick={quickRegister}
+          aria-label="Registrar movimiento de hoy"
+          title="Registrar movimiento"
+        >
+          <Plus size={24} aria-hidden="true" />
+        </button>
+      )}
+      <GuideModal open={showGuide} onClose={closeGuide} />
 
       {/* ── Modales y avisos (sin alert/confirm nativos) ── */}
       {(needsOnboarding || showModeSelector) && (

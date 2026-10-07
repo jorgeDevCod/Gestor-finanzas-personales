@@ -20,6 +20,8 @@ interface Props {
   /** Gastos a resumir por categoría (período actual, o día abierto/hoy en Daily). */
   categoryRows: { amount: string; categoryId?: string }[];
   categories: Category[];
+  /** Métricas de anticipación ya calculadas ([] = no mostrar). */
+  metrics: { label: string; value: string }[];
 }
 
 /**
@@ -38,6 +40,7 @@ export const BalanceOverview = ({
   today,
   categoryRows,
   categories,
+  metrics,
 }: Props) => {
   const isDaily = mode === 'daily';
   const positive = balance.available >= 0;
@@ -112,6 +115,17 @@ export const BalanceOverview = ({
           <p className="mini-value txt-expense">−${fmtMoney(balance.totalExpenses)}</p>
         </div>
       </div>
+
+      {metrics.length > 0 && (
+        <div className="metrics-row" aria-live="polite" aria-label="Métricas del período">
+          {metrics.map((m) => (
+            <div key={m.label} className="metric">
+              <p className="mini-label">{m.label}</p>
+              <p className="mini-value">{m.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!isDaily && (
         <p className="balance-sub" style={{ marginTop: 14 }}>

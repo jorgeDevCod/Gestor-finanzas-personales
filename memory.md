@@ -48,15 +48,16 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── types/finance.ts        # AppMode, AppView, PaymentType, MoneyRow (+categoryId?), DayEntry, Category, Theme, guards, uid
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
     ├── utils/categories.ts       # normalizeKey, cleanName, add/rename/remove, resolveCategory, summarizeByCategory, seed (puras)
-    ├── utils/modeFlow.ts         # needsSalaryStep: solo pedir monto si el modo no tiene (pura, testeada)
+    ├── utils/dashboard.ts        # avgDailyExpense, projectedSpend, streakDays, distinctDates (puras)
+    ├── utils/modeFlow.ts         # needsSalaryStep + initialOnboardingStep (puras, testeadas)
     └── components/
         ├── TabBar.tsx            # nav inferior: Resumen / Movimientos / Ajustes (sin rutas)
-        ├── SettingsView.tsx      # modo, apariencia, instalar, exportar, borrar registros
+        ├── SettingsView.tsx      # modo, apariencia, instalar, exportar, categorías, guía, borrar
         ├── ModeSelector.tsx      # asistente 1 pantalla (bienvenida+modos) → monto solo si falta; trap de foco
         ├── BalanceOverview.tsx # balance del período (o caja Daily) + "En qué se va tu dinero" por categoría
         ├── DaySummary.tsx      # 3 cifras en tiempo real (la lista editable vive arriba)
         ├── CategoriesModal.tsx # renombrar/eliminar categorías por tipo (con confirmación)
-        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal (+categoría opcional), AmountModal, useFocusTrap
+        └── dialogs.tsx         # Toasts, ConfirmDialog, DateModal, RegisterModal (+categoría opcional, monto primero), AmountModal, GuideModal, useFocusTrap
 ```
 
 **Eliminado (legacy):** `App.jsx`, `main.jsx`, los 5 `.jsx` + 3 `.js`, `vite.config.js`, `FeatureCard` (marketing), hero `Domina tus finanzas…` + triple `HEADER_FEATURES` (compactados a subtítulo), botón export por día (ahora global), `alert/confirm` nativos, parche timezone `+1 día`, keys por índice, `dist/` del build viejo (regenerado, ignorado en git).

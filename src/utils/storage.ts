@@ -18,6 +18,7 @@ const K = {
   theme: 'gfp:theme',
   initial: 'gfp:initial',
   view: 'gfp:view',
+  guideSeen: 'gfp:guide-seen',
   categories: 'gfp:categories',
   categoriesReady: 'gfp:categories-ready',
 } as const;
@@ -191,6 +192,11 @@ export const loadView = (): AppView => {
 };
 
 export const saveView = (view: AppView): void => write(K.view, view);
+
+/** Guía vista una sola vez (se marca al cerrarla). */
+export const hasSeenGuide = (): boolean => read(K.guideSeen) === '1';
+
+export const markGuideSeen = (): void => write(K.guideSeen, '1');
 
 interface RawCategory {
   id?: unknown;

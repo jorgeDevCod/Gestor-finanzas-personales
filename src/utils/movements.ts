@@ -47,3 +47,23 @@ export const removeMovement = (day: DayEntry, kind: MovementKind, rowId: string)
   const key = kindToRows(kind);
   return { ...day, [key]: day[key].filter((r) => r.id !== rowId) };
 };
+
+export interface LastPrefs {
+  paymentType: PaymentType;
+  categoryId: string;
+}
+
+/**
+ * Preferencias del último movimiento del tipo (pago + categoría) para
+ * prellenar el registro rápido. Sin movimientos → valores vacíos.
+ * Puro y derivado: no requiere claves nuevas.
+ */
+export const lastPrefs = (days: DayEntry[], kind: MovementKind): LastPrefs => {
+  const key = kindToRows(kind);
+  const ordered = [...days].sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
+  for (const d of ordered) {
+    const last = d[key][d[key].length - 1];
+    if (last) return { paymentType: last.paymentType, categoryId: last.categoryId ?? '' };
+  }
+  return { paymentType: '', categoryId: '' };
+};

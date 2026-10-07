@@ -4,6 +4,7 @@ import { normalizePaymentType } from './src/types/finance';
 import {
   buildMovement,
   kindToRows,
+  lastPrefs,
   removeMovement,
   upsertMovement,
   validateMovement,
@@ -16,6 +17,13 @@ import {
 } from './src/utils/periods';
 import { cashBalance, periodBalance } from './src/utils/calculations';
 import { initialOnboardingStep, needsSalaryStep } from './src/utils/modeFlow';
+import {
+  dashboardMetrics,
+  distinctDates,
+  fullDashboard,
+  streakDays,
+} from './src/utils/dashboard';
+import { hasSeenGuide, markGuideSeen } from './src/utils/storage';
 import {
   loadInitialBalance,
   loadSalary,
@@ -354,6 +362,50 @@ memStore.set('gfp:view', 'nube');
 check('view invalid resumen', loadView() === 'resumen');
 saveView('ajustes');
 check('view roundtrip', loadView() === 'ajustes');
+
+// dashboard: anticipación sin división por cero
+const ddays = [
+  { id: 'd1', dateISO: '2026-09-24', incomes: [], expenses: [{ id: 'e1', name: 'A', amount: '100', paymentType: 'efectivo' as const }] },
+  { id: 'd2', dateISO: '2026-09-25', incomes: [], expenses: [{ id: 'e2', name: 'B', amount: '60', paymentType: 'efectivo' as const }] },
+  { id: 'd3', dateISO: '2026-09-26', incomes: [], expenses: [] },
+];
+const dm = dashboardMetrics(ddays, 3, 15);
+check('avg daily', dm.avgDailyExpense === 160 / 3);
+check('projected', dm.projectedSpend === (160 / 3) * 15);
+check('movement count', dm.movementCount === 2);
+check('empty safe', (() => {
+  const e = dashboardMetrics([], 0, 30);
+  return e.avgDailyExpense === 0 && e.projectedSpend === null && e.movementCount === 0;
+})());
+check('streak 2 days', streakDays(ddays, '2026-09-25') === 2);
+check('streak broken today', streakDays(ddays, '2026-09-26') === 0);
+check('streak single', streakDays(ddays, '2026-09-24') === 1);
+check('distinct dates', distinctDates(ddays) === 2);
+check('full dashboard streak', fullDashboard(ddays, ddays, 3, 15, '2026-09-25').streakDays === 2);
+
+// lastPrefs: hereda pago + categoría del último movimiento del tipo
+const prefDays = [
+  { id: 'p1', dateISO: '2026-09-20', incomes: [], expenses: [{ id: 'x1', name: 'A', amount: '10', paymentType: 'debito' as const, categoryId: 'cat-1' }] },
+  { id: 'p2', dateISO: '2026-09-25', incomes: [{ id: 'x2', name: 'B', amount: '5', paymentType: 'transferencia' as const }], expenses: [] },
+];
+check('prefs expense', (() => {
+  const p = lastPrefs(prefDays, 'expense');
+  return p.paymentType === 'debito' && p.categoryId === 'cat-1';
+})());
+check('prefs income no category', (() => {
+  const p = lastPrefs(prefDays, 'income');
+  return p.paymentType === 'transferencia' && p.categoryId === '';
+})());
+check('prefs empty', (() => {
+  const p = lastPrefs([], 'expense');
+  return p.paymentType === '' && p.categoryId === '';
+})());
+
+// guide: se muestra una sola vez
+memStore.delete('gfp:guide-seen');
+check('guide unseen', hasSeenGuide() === false);
+markGuideSeen();
+check('guide seen', hasSeenGuide() === true);
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

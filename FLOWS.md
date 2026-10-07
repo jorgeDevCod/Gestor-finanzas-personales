@@ -15,7 +15,7 @@ con estado central en `hooks/useFinance.ts` y persistencia en `localStorage`.
 | Estado + reglas | `src/hooks/useFinance.ts` | Días, modo, salario, saldo inicial, categorías, período, CRUD |
 | Lógica categorías | `src/utils/categories.ts` | `normalizeKey`, `cleanName`, `add/rename/remove`, `resolveCategory`, `summarizeByCategory`, semilla |
 | Navegación por vistas | `src/components/TabBar.tsx` | Resumen / Movimientos / Ajustes, `aria-current`, vista persistida `gfp:view` |
-| Vista Ajustes | `src/components/SettingsView.tsx` | Modo, apariencia, instalar, exportar TXT/Excel, borrar |
+| Vista Ajustes | `src/components/SettingsView.tsx` | Modo, apariencia, instalar, exportar TXT/Excel, categorías, guía, borrar |
 | Gestión categorías | `src/components/CategoriesModal.tsx` | Renombrar/eliminar por tipo con confirmación |
 | Tema | `src/hooks/useTheme.ts` | Claro/oscuro en `<html data-theme>`, persiste `gfp:theme` |
 | Instalación PWA | `src/hooks/usePwaInstall.ts` | Botón Instalar dinámico |
@@ -124,10 +124,14 @@ days (estado) → period = getCurrentPeriod(modo, hoy)
 
 La app muestra **una vista a la vez** (`TabBar` inferior, `aria-current`, vista recordada en `gfp:view`):
 
-1. **Resumen**: subtítulo del modo + `BalanceOverview` (+ bloque de categorías). Sin días → tarjeta con CTA **Registrar** (crea/abre hoy y abre el registro directo).
+1. **Resumen**: subtítulo del modo + `BalanceOverview` (disponible, progreso, métricas de anticipación, categorías) + CTA **Registrar** si no hay datos (crea/abre hoy y abre el registro directo). Botón `+` flotante global para registrar desde cualquier vista.
 2. **Movimientos**: toolbar compacta (Hoy / Fecha) + acordeón de días con registro, listas y `DaySummary` por día.
-3. **Ajustes**: modo actual (+ cambiar), apariencia, instalar app (si disponible), exportar TXT/Excel, borrar registros y nota de privacidad.
+3. **Ajustes**: modo actual (+ cambiar), apariencia, instalar app (si disponible), exportar TXT/Excel, categorías, guía "Cómo usar", borrar registros y nota de privacidad.
 4. Topbar aligerada (marca + Instalar + tema); modales y toasts funcionan desde cualquier vista.
+
+### F8c — Guía de uso
+
+`GuideModal` (3 pasos: toca `+` y anota / elige modo / mira tu disponible): aparece **una sola vez** tras el onboarding (flag `gfp:guide-seen`) y siempre disponible en Ajustes → "Cómo usar la app". Trampa de foco, Esc la cierra, nunca bloquea.
 
 ### F9 — Exportar (TXT / Excel)
 

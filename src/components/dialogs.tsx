@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, CircleDollarSign, MinusCircle, Plus, X } from 'lucide-react';
+import {
+  CalendarDays,
+  Check,
+  CircleDollarSign,
+  MinusCircle,
+  Plus,
+  X,
+} from 'lucide-react';
 import type { Notice } from '../hooks/useFinance';
 import type { Category, CategoryKind, PaymentType } from '../types/finance';
 import {
@@ -293,19 +300,6 @@ export const RegisterModal = ({
           </div>
         )}
 
-        <label className="form-label" htmlFor="mov-name">
-          Descripción
-        </label>
-        <input
-          id="mov-name"
-          type="text"
-          placeholder={isIncome ? 'Ej. Venta, bono, reembolso' : 'Ej. Comida, renta, transporte'}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="input-dark input-block"
-          maxLength={80}
-        />
-
         <label className="form-label" htmlFor="mov-amount">
           Monto $
         </label>
@@ -332,6 +326,19 @@ export const RegisterModal = ({
             {error}
           </p>
         )}
+
+        <label className="form-label" htmlFor="mov-name">
+          Descripción <span className="form-optional">(opcional)</span>
+        </label>
+        <input
+          id="mov-name"
+          type="text"
+          placeholder={isIncome ? 'Ej. Venta, bono, reembolso' : 'Ej. Comida, renta, transporte'}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="input-dark input-block"
+          maxLength={80}
+        />
 
         <div className="form-grid-2col">
           <div>
@@ -549,6 +556,70 @@ export const AmountModal = ({
             {confirmLabel}
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const GUIDE_STEPS: { Icon: typeof Plus; title: string; text: string }[] = [
+  {
+    Icon: Plus,
+    title: 'Toca + y anota',
+    text: 'Registra tu gasto o entrada con monto en segundos. Lo demás es opcional.',
+  },
+  {
+    Icon: CalendarDays,
+    title: 'Elige Hoy, Quincena o Mes',
+    text: 'Cada modo muestra solo lo de su período. Cambia cuando quieras sin perder nada.',
+  },
+  {
+    Icon: CircleDollarSign,
+    title: 'Mira cuánto te queda',
+    text: 'Tu disponible, el promedio diario y la proyección al cierre, siempre al día.',
+  },
+];
+
+/** Guía de uso en 3 pasos. Amable, breve y descartable (una vez + desde Ajustes). */
+export const GuideModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  const trapRef = useFocusTrap(open);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+      <div className="modal-box" ref={trapRef}>
+        <p className="eyebrow">Aprende en 30 segundos</p>
+        <h2 id="guide-title" className="modal-title-sm">
+          ¿Cómo usar Mis Finanzas?
+        </h2>
+        <ol className="guide-steps">
+          {GUIDE_STEPS.map(({ Icon, title, text }, i) => (
+            <li key={title} className="guide-step">
+              <span className="guide-num" aria-hidden="true">
+                {i + 1}
+              </span>
+              <span className="guide-icon" aria-hidden="true">
+                <Icon size={18} />
+              </span>
+              <span className="guide-text">
+                <strong>{title}</strong>
+                <span>{text}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <button type="button" className="btn-lime btn-block" onClick={onClose}>
+          ¡Entendido!
+        </button>
       </div>
     </div>
   );

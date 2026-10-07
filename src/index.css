@@ -1683,6 +1683,119 @@ body {
   }
 }
 
+/* ══ BOTÓN + FLOTANTE (registro en 1 toque) ══ */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-lime), var(--color-income));
+  box-shadow: 0 8px 24px rgba(4, 120, 87, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+:root[data-theme='dark'] .fab {
+  color: #06130e;
+}
+
+.fab:hover {
+  transform: scale(1.06);
+}
+
+.fab:active {
+  transform: scale(0.94);
+}
+
+/* ══ GUÍA DE USO ══ */
+.guide-steps {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.guide-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-lime);
+}
+
+:root[data-theme='dark'] .guide-num {
+  color: #06130e;
+}
+
+.guide-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface2);
+  color: var(--color-lime);
+}
+
+.guide-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
+  color: var(--color-text-sec);
+  line-height: 1.55;
+}
+
+.guide-text strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+/* ══ MÉTRICAS DE ANTICIPACIÓN ══ */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.metric .mini-value {
+  overflow-wrap: anywhere;
+}
+
+.form-optional {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--color-text-ter);
+}
+
 /* ══ RESPONSIVE FINO (móviles pequeños) ══ */
 @media (max-width: 400px) {
   .tool-main {
