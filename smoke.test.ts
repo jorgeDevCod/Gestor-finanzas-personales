@@ -21,12 +21,16 @@ import {
   loadSalary,
   loadSalaryForMode,
   loadCategories,
+  loadView,
+  loadView,
   resetInitialBalance,
   resetSalaryForMode,
   saveCategories,
   saveInitialBalance,
   saveSalary,
   saveSalaryForMode,
+  saveView,
+  saveView,
   seedCategoriesIfNeeded,
 } from './src/utils/storage';
 import {
@@ -342,6 +346,14 @@ check('storage down safe', (() => {
 check('build keeps category', buildMovement({ name: 'X', amount: '10', paymentType: 'efectivo', categoryId: 's1' }).categoryId === 's1');
 check('build omits empty category', !('categoryId' in buildMovement({ name: 'X', amount: '10', paymentType: 'efectivo', categoryId: '' })));
 check('build omits absent category', !('categoryId' in buildMovement({ name: 'X', amount: '10', paymentType: 'efectivo' })));
+
+// view: inválida o ausente → 'resumen'
+memStore.delete('gfp:view');
+check('view default resumen', loadView() === 'resumen');
+memStore.set('gfp:view', 'nube');
+check('view invalid resumen', loadView() === 'resumen');
+saveView('ajustes');
+check('view roundtrip', loadView() === 'ajustes');
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

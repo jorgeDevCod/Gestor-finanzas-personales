@@ -109,24 +109,24 @@ export const useFinance = (notify: (kind: Notice['kind'], text: string) => void)
     [...list].sort((a, b) => (a.dateISO < b.dateISO ? -1 : 1));
 
   const createDay = useCallback(
-    (iso: string): boolean => {
+    (iso: string): string | null => {
       if (!isValidISO(iso)) {
         notify('error', 'Fecha no válida.');
-        return false;
+        return null;
       }
       if (isFutureISO(iso)) {
         notify('error', 'No puedes agregar una fecha futura.');
-        return false;
+        return null;
       }
       if (days.some((d) => d.dateISO === iso)) {
         notify('error', 'Ya existe un registro para esta fecha.');
-        return false;
+        return null;
       }
       const entry: DayEntry = { id: uid(), dateISO: iso, incomes: [], expenses: [] };
       setDays((prev) => sortDays([...prev, entry]));
       setExpandedId(entry.id);
       notify('success', 'Día agregado.');
-      return true;
+      return entry.id;
     },
     [days, notify],
   );

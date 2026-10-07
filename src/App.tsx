@@ -5,23 +5,20 @@ import {
   ChevronRight,
   CircleDollarSign,
   Download,
-  FileSpreadsheet,
-  FileText,
   MinusCircle,
   Moon,
   Pencil,
   Plus,
-  Settings,
   Sun,
   Trash2,
   Wallet,
 } from 'lucide-react';
-import type { AppMode, Category, MoneyRow } from './types/finance';
+import type { AppMode, AppView, Category, MoneyRow } from './types/finance';
 import { useTheme } from './hooks/useTheme';
 import { useFinance, type Notice } from './hooks/useFinance';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { MODE_CONFIG, paymentLabel } from './utils/constants';
-import { loadSalaryForMode } from './utils/storage';
+import { loadSalaryForMode, loadView, saveView } from './utils/storage';
 import { calculateTotals, fmtMoney, periodBalance } from './utils/calculations';
 import { EMPTY_MOVEMENT, kindToRows, type MovementInput, type MovementKind } from './utils/movements';
 import { resolveCategory } from './utils/categories';
@@ -31,6 +28,8 @@ import { BalanceOverview } from './components/BalanceOverview';
 import { CategoriesModal } from './components/CategoriesModal';
 import { DaySummary } from './components/DaySummary';
 import { ModeSelector } from './components/ModeSelector';
+import { SettingsView } from './components/SettingsView';
+import { TabBar } from './components/TabBar';
 import { AmountModal, ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
 import type { DayEntry } from './types/finance';
 
@@ -193,6 +192,7 @@ const App = () => {
   const [movModal, setMovModal] = useState<{ dayId: string; kind: MovementKind; rowId?: string } | null>(null);
   const [showCategories, setShowCategories] = useState(false);
   const [catDelete, setCatDelete] = useState<{ id: string; name: string; affected: number } | null>(null);
+  const [view, setViewState] = useState<AppView>(() => loadView());
 
   const mode: AppMode = appMode ?? 'daily';
   const modeConfig = MODE_CONFIG[mode];
@@ -220,6 +220,32 @@ const App = () => {
     setSalaryFirst(false);
     setShowModeSelector(true);
   };
+
+  const changeView = useCallback((v: AppView) => {
+    setViewState(v);
+    saveView(v);
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  /** Desde Resumen: asegura el día de hoy y abre el registro directo. */
+  const quickRegister = useCallback(() => {
+    const iso = todayISO();
+    const existing = days.find((d) => d.dateISO === iso);
+    const id = existing ? existing.id : createDay(iso);
+    if (!id) return;
+    changeView('movimientos');
+    setMovModal({ dayId: id, kind: 'expense' });
+  }, [changeView, createDay, days]);
+
+  const handleExportTxt = useCallback(() => {
+    exportToTextFile(days, categories);
+    notify('success', 'Archivo TXT descargado.');
+  }, [days, categories, notify]);
+
+  const handleExportXls = useCallback(() => {
+    exportToExcel(days, categories);
+    notify('success', 'Archivo Excel descargado.');
+  }, [days, categories, notify]);
 
   /** Salario guardado de cada modo (lee storage: siempre fresco). */
   const savedSalaryFor = useCallback(
@@ -276,111 +302,80 @@ const App = () => {
             >
               {theme === 'light' ? <Moon size={17} aria-hidden="true" /> : <Sun size={17} aria-hidden="true" />}
             </button>
-            {appMode && (
-              <button type="button" className="icon-btn" onClick={openModePicker} aria-label="Cambiar modo o salario">
-                <Settings size={17} aria-hidden="true" />
-              </button>
-            )}
           </div>
         </div>
       </header>
 
       <main className="tool-main">
-        {appMode && (
-          <p className="tool-subtitle">
-            {modeConfig.subtitle} {modeConfig.description}
-          </p>
-        )}
-
-        {/* Balance del período actual (o caja en Daily) */}
-        {appMode && (
-          <BalanceOverview
-            mode={appMode}
-            period={period}
-            balance={overviewBalance}
-            baseLabel={isDaily ? 'Saldo inicial' : 'Ingreso base'}
-            incomesLabel={isDaily ? 'Ingresos' : 'Ingresos extra'}
-            onEditBase={() => {
-              if (isDaily) {
-                setShowInitialModal(true);
-              } else {
-                setSalaryFirst(true);
-                setShowModeSelector(true);
-              }
-            }}
-            editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
-            onResetBase={() => setConfirmReset(true)}
-            today={isDaily ? todayTotals : null}
-            categoryRows={breakdownRows}
-            categories={categories}
-          />
-        )}
-
-        {/* ── Barra de acciones (export global, no por día) ── */}
-        {appMode && (
-          <div className="toolbar" role="toolbar" aria-label="Acciones de registro">
-            <button type="button" className="btn-lime" onClick={addToday}>
-              <CalendarPlus size={15} aria-hidden="true" />
-              Hoy
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => setShowDateModal(true)}>
-              <Plus size={15} aria-hidden="true" />
-              Fecha
-            </button>
-            <div className="toolbar-spacer" />
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={days.length === 0}
-              onClick={() => {
-                exportToTextFile(days, categories);
-                notify('success', 'Archivo TXT descargado.');
-              }}
-              title="Exportar todo a texto plano"
-            >
-              <FileText size={14} aria-hidden="true" />
-              TXT
-            </button>
-            <button
-              type="button"
-              className="btn-ghost btn-sm"
-              disabled={days.length === 0}
-              onClick={() => {
-                exportToExcel(days, categories);
-                notify('success', 'Archivo Excel descargado.');
-              }}
-              title="Exportar todo a Excel"
-            >
-              <FileSpreadsheet size={14} aria-hidden="true" />
-              Excel
-            </button>
-            {days.length > 0 && (
-              <button
-                type="button"
-                className="btn-ghost btn-sm btn-danger-ghost"
-                onClick={() => setConfirmClear(true)}
-                title="Borrar todos los registros"
-              >
-                <Trash2 size={14} aria-hidden="true" />
-                Borrar
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Estado vacío compacto ── */}
-        {appMode && days.length === 0 && (
-          <div className="empty-state" role="status">
-            <p className="empty-title">Sin registros todavía</p>
-            <p className="empty-text">
-              Toca <strong>Hoy</strong> para abrir el día actual o <strong>Fecha</strong> para elegir otra fecha.
-              Luego usa <strong>Registrar gasto $</strong> o <strong>Registrar entrada $</strong> para anotar tus movimientos.
+        {appMode && view === 'resumen' && (
+          <>
+            <p className="tool-subtitle">
+              {modeConfig.subtitle} {modeConfig.description}
             </p>
-          </div>
+
+            {/* Balance del período actual (o caja en Daily) */}
+            <BalanceOverview
+              mode={appMode}
+              period={period}
+              balance={overviewBalance}
+              baseLabel={isDaily ? 'Saldo inicial' : 'Ingreso base'}
+              incomesLabel={isDaily ? 'Ingresos' : 'Ingresos extra'}
+              onEditBase={() => {
+                if (isDaily) {
+                  setShowInitialModal(true);
+                } else {
+                  setSalaryFirst(true);
+                  setShowModeSelector(true);
+                }
+              }}
+              editLabel={isDaily ? 'Editar saldo' : 'Editar salario'}
+              onResetBase={() => setConfirmReset(true)}
+              today={isDaily ? todayTotals : null}
+              categoryRows={breakdownRows}
+              categories={categories}
+            />
+
+            {days.length === 0 && (
+              <div className="empty-state" role="status">
+                <p className="empty-title">Empieza tu primer registro</p>
+                <p className="empty-text">
+                  Anota tu primer gasto o entrada de hoy y verás tu balance al instante.
+                </p>
+                <button type="button" className="btn-lime" onClick={quickRegister}>
+                  <Plus size={15} aria-hidden="true" />
+                  Registrar
+                </button>
+              </div>
+            )}
+          </>
         )}
 
-        {/* ── Lista de días (acordeón: un día abierto a la vez) ── */}
-        <div className="day-list">
+        {/* ── Vista Movimientos: registro por día ── */}
+        {appMode && view === 'movimientos' && (
+          <>
+            <div className="toolbar" role="toolbar" aria-label="Acciones de registro">
+              <button type="button" className="btn-lime" onClick={addToday}>
+                <CalendarPlus size={15} aria-hidden="true" />
+                Hoy
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => setShowDateModal(true)}>
+                <Plus size={15} aria-hidden="true" />
+                Fecha
+              </button>
+            </div>
+
+            {days.length === 0 && (
+              <div className="empty-state" role="status">
+                <p className="empty-title">Sin registros todavía</p>
+                <p className="empty-text">
+                  Toca <strong>Hoy</strong> para abrir el día actual o <strong>Fecha</strong> para elegir otra fecha.
+                  Luego usa <strong>Registrar gasto $</strong> o <strong>Registrar entrada $</strong> para anotar tus movimientos.
+                </p>
+              </div>
+            )}
+
+            {/* ── Lista de días (acordeón: un día abierto a la vez) ── */}
+            <div className="day-list">
           {days.map((day) => {
             const open = expandedId === day.id;
             const t = calculateTotals(day);
@@ -463,8 +458,28 @@ const App = () => {
               </article>
             );
           })}
-        </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Vista Ajustes: modo, apariencia, instalación y datos ── */}
+        {appMode && view === 'ajustes' && (
+          <SettingsView
+            modeLabel={modeConfig.label}
+            onOpenModePicker={openModePicker}
+            theme={theme}
+            onToggleTheme={toggle}
+            canInstall={showInstall}
+            onInstall={handleInstall}
+            hasDays={days.length > 0}
+            onExportTxt={handleExportTxt}
+            onExportXls={handleExportXls}
+            onClearRequest={() => setConfirmClear(true)}
+          />
+        )}
       </main>
+
+      {appMode && <TabBar view={view} onChange={changeView} />}
 
       {/* ── Modales y avisos (sin alert/confirm nativos) ── */}
       {(needsOnboarding || showModeSelector) && (

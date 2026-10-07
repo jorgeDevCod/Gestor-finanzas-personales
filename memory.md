@@ -45,11 +45,13 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── hooks/useTheme.ts       # default light, <html data-theme>, persiste gfp:theme
     ├── hooks/usePwaInstall.ts  # beforeinstallprompt/appinstalled/standalone/iOS → visible + install()
     ├── hooks/useFinance.ts     # días, modo, salarios, saldo inicial, categorías + period/periodTotals/todayTotals (derivados)
-    ├── types/finance.ts        # AppMode, PaymentType, MoneyRow (+categoryId?), DayEntry, Category, Theme, guards, uid
+    ├── types/finance.ts        # AppMode, AppView, PaymentType, MoneyRow (+categoryId?), DayEntry, Category, Theme, guards, uid
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
     ├── utils/categories.ts       # normalizeKey, cleanName, add/rename/remove, resolveCategory, summarizeByCategory, seed (puras)
     ├── utils/modeFlow.ts         # needsSalaryStep: solo pedir monto si el modo no tiene (pura, testeada)
     └── components/
+        ├── TabBar.tsx            # nav inferior: Resumen / Movimientos / Ajustes (sin rutas)
+        ├── SettingsView.tsx      # modo, apariencia, instalar, exportar, borrar registros
         ├── ModeSelector.tsx      # asistente 1 pantalla (bienvenida+modos) → monto solo si falta; trap de foco
         ├── BalanceOverview.tsx # balance del período (o caja Daily) + "En qué se va tu dinero" por categoría
         ├── DaySummary.tsx      # 3 cifras en tiempo real (la lista editable vive arriba)

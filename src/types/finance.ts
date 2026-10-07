@@ -27,6 +27,11 @@ export interface DayEntry {
 
 export type Theme = 'light' | 'dark';
 
+export type AppView = 'resumen' | 'movimientos' | 'ajustes';
+
+export const isAppView = (v: unknown): v is AppView =>
+  v === 'resumen' || v === 'movimientos' || v === 'ajustes';
+
 export type CategoryKind = 'expense' | 'income';
 
 export interface Category {

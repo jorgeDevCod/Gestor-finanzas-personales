@@ -333,59 +333,64 @@ export const RegisterModal = ({
           </p>
         )}
 
-        <label className="form-label" htmlFor="mov-pay">
-          Método de pago
-        </label>
-        <select
-          id="mov-pay"
-          value={payment}
-          onChange={(e) => setPayment(e.target.value as PaymentType)}
-          className="input-dark select-dark input-block"
-        >
-          {PAYMENT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="form-row-between">
-          <label className="form-label form-label-inline" htmlFor="mov-cat">
-            Categoría (opcional)
-          </label>
-          <button type="button" className="link-btn" onClick={onManageCategories}>
-            Gestionar
-          </button>
-        </div>
-        <div className="cat-field">
-          <select
-            id="mov-cat"
-            ref={selectRef}
-            value={selectValue}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="input-dark select-dark cat-select"
-          >
-            <option value="">Sin categoría</option>
-            {catOptions.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {!showCreator && (
-            <button
-              type="button"
-              className="icon-btn-44"
-              title="Nueva categoría"
-              aria-label="Nueva categoría"
-              onClick={() => {
-                setCreatorName('');
-                setShowCreator(true);
-              }}
+        <div className="form-grid-2col">
+          <div>
+            <label className="form-label" htmlFor="mov-pay">
+              Método de pago
+            </label>
+            <select
+              id="mov-pay"
+              value={payment}
+              onChange={(e) => setPayment(e.target.value as PaymentType)}
+              className="input-dark select-dark input-block"
             >
-              <Plus size={18} aria-hidden="true" />
-            </button>
-          )}
+              {PAYMENT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <div className="form-row-between">
+              <label className="form-label form-label-inline" htmlFor="mov-cat">
+                Categoría (opcional)
+              </label>
+              <button type="button" className="link-btn" onClick={onManageCategories}>
+                Gestionar
+              </button>
+            </div>
+            <div className="cat-field">
+              <select
+                id="mov-cat"
+                ref={selectRef}
+                value={selectValue}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="input-dark select-dark cat-select"
+              >
+                <option value="">Sin categoría</option>
+                {catOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {!showCreator && (
+                <button
+                  type="button"
+                  className="icon-btn-44"
+                  title="Nueva categoría"
+                  aria-label="Nueva categoría"
+                  onClick={() => {
+                    setCreatorName('');
+                    setShowCreator(true);
+                  }}
+                >
+                  <Plus size={18} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
         {showCreator && (
           <div className="cat-creator">

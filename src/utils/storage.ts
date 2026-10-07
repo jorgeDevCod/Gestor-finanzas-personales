@@ -1,5 +1,5 @@
-import type { AppMode, Category, CategoryKind, DayEntry, Theme } from '../types/finance';
-import { isAppMode, isCategoryKind, isPaymentType, normalizePaymentType, uid } from '../types/finance';
+import type { AppMode, AppView, Category, CategoryKind, DayEntry, Theme } from '../types/finance';
+import { isAppMode, isAppView, isCategoryKind, isPaymentType, normalizePaymentType, uid } from '../types/finance';
 import { isValidISO } from './dates';
 import { cleanName, dedupeCategories, MAX_PER_KIND, seedCategories } from './categories';
 
@@ -17,6 +17,7 @@ const K = {
   salariesReady: 'gfp:salaries-ready',
   theme: 'gfp:theme',
   initial: 'gfp:initial',
+  view: 'gfp:view',
   categories: 'gfp:categories',
   categoriesReady: 'gfp:categories-ready',
 } as const;
@@ -182,6 +183,14 @@ export const loadTheme = (): Theme | null => {
 };
 
 export const saveTheme = (theme: Theme): void => write(K.theme, theme);
+
+/** Vista activa recordada. Por defecto 'resumen'; inválido → 'resumen'. */
+export const loadView = (): AppView => {
+  const v = read(K.view);
+  return isAppView(v) ? v : 'resumen';
+};
+
+export const saveView = (view: AppView): void => write(K.view, view);
 
 interface RawCategory {
   id?: unknown;
