@@ -1,8 +1,9 @@
 # MEMORY.MD — Gestor de Finanzas Personales (v1.1 períodos + caja)
 
 > **Ruta:** `C:\Users\Jpasapera\Downloads\proyectos\Gestor-finanzas-personales`
-> **Actualizado:** v1.2 — categorías opcionales (gastos e ingresos) con resumen por período.
+> **Actualizado:** v1.2 — categorías opcionales (gastos e ingresos) con resumen por período + táctil AA ≥44px.
 > **Tests:** `npm test` = `typecheck` + `lint` + `test:smoke` (100+ checks) + `build` → todo verde.
+> **Accesibilidad táctil:** todos los controles interactivos ≥44px (botones, icono-botones, segmentado, mini-acciones, inputs, instalar) con offset sticky de toolbar sincronizado (65px / 61px móvil).
 
 ---
 

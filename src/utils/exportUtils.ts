@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { Category, DayEntry } from '../types/finance';
-import { calculateTotals, fmtMoney } from './calculations';
+import { calculateTotals } from './calculations';
 import { formatLong } from './dates';
 import { paymentLabel } from './constants';
 import { resolveCategory } from './categories';
@@ -107,5 +107,3 @@ export const exportToExcel = (days: DayEntry[], categories: Category[] = []): vo
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Resumen por día');
   XLSX.writeFile(wb, `Mis Finanzas_${stamp()}.xlsx`);
 };
-
-export const fmtMoneyEs = fmtMoney;
