@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
-  ArrowRight,
   BarChart3,
   CalendarDays,
   CreditCard,
-  Lock,
-  ShieldCheck,
   Wallet,
-  WifiOff,
 } from 'lucide-react';
 import type { AppMode } from '../types/finance';
 import { initialOnboardingStep, needsSalaryStep } from '../utils/modeFlow';
@@ -36,7 +32,7 @@ const MODES: {
   {
     id: 'daily',
     headline: 'Hoy',
-    description: 'Empieza fácil: sin montos iniciales. Registras y ves tu saldo al instante.',
+    description: 'Sin montos iniciales. Registras y ves tu saldo al instante.',
     accentClass: 'mode-accent-income',
     badge: 'Recomendado',
   },
@@ -68,12 +64,6 @@ const SALARY_PERIOD: Record<Exclude<AppMode, 'daily'>, { periodo: string; articu
   },
 };
 
-const TRUST: { Icon: typeof ShieldCheck; text: string }[] = [
-  { Icon: ShieldCheck, text: 'Sin cuentas ni registros' },
-  { Icon: Lock, text: 'Tus datos se quedan en tu dispositivo' },
-  { Icon: WifiOff, text: 'Funciona sin conexión' },
-];
-
 const StepDots = ({ current, total }: { current: number; total: number }) => (
   <div className="step-dots" aria-hidden="true">
     {Array.from({ length: total }, (_, i) => (
@@ -82,11 +72,11 @@ const StepDots = ({ current, total }: { current: number; total: number }) => (
   </div>
 );
 
-/** Asistente inicial amable: bienvenida → modos → monto (solo si hace falta). */
+/** Asistente en una sola pantalla: bienvenida + modos, y monto solo si falta. */
 export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMode, startAtSalaryStep, onClose }: Props) => {
   const editMode: Exclude<AppMode, 'daily'> | null =
     startAtSalaryStep && currentMode !== 'daily' ? currentMode : null;
-  const [step, setStep] = useState<0 | 1 | 2>(() =>
+  const [step, setStep] = useState<1 | 2>(() =>
     initialOnboardingStep({ isChanging, editingSalary: editMode !== null }),
   );
   const [selected, setSelected] = useState<Exclude<AppMode, 'daily'> | null>(editMode);
@@ -145,40 +135,30 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMod
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mode-title">
       <div className="modal-box modal-box-wide" ref={trapRef}>
-        {step === 0 && (
-          <div className="welcome">
-            <span className="welcome-emblem" aria-hidden="true">
-              <Wallet size={30} />
-            </span>
-            <p className="eyebrow">Bienvenido a Mis Finanzas</p>
-            <h2 id="mode-title" className="welcome-title">
-              Tus finanzas, bajo control
-            </h2>
-            <p className="modal-sub">
-              Registra tus gastos e ingresos en segundos y descubre cuánto dinero te queda.
-            </p>
-            <ul className="trust-row">
-              {TRUST.map(({ Icon, text }) => (
-                <li key={text}>
-                  <Icon size={18} aria-hidden="true" />
-                  <span>{text}</span>
-                </li>
-              ))}
-            </ul>
-            <button type="button" className="btn-lime btn-block" onClick={() => setStep(1)}>
-              Empezar
-              <ArrowRight size={16} aria-hidden="true" />
-            </button>
-          </div>
-        )}
-
         {step === 1 && (
           <>
-            <p className="eyebrow">{isChanging ? 'Elige un nuevo modo' : 'Paso 1 de 2'}</p>
-            <h2 id="mode-title" className="modal-title">
-              ¿Cada cuánto recibes tu dinero?
-            </h2>
-            <p className="modal-sub">Elige la forma que mejor encaje contigo. Podrás cambiarla después sin perder nada.</p>
+            {!isChanging && (
+              <div className="welcome-head">
+                <span className="welcome-emblem" aria-hidden="true">
+                  <Wallet size={24} />
+                </span>
+                <p className="eyebrow">Bienvenido a Mis Finanzas</p>
+                <h2 id="mode-title" className="welcome-title">
+                  Tus finanzas, bajo control
+                </h2>
+              </div>
+            )}
+            {isChanging ? (
+              <h2 id="mode-title" className="modal-title">
+                Elige un nuevo modo
+              </h2>
+            ) : (
+              <>
+                <p className="eyebrow">Paso 1 de 2</p>
+                <h2 className="modal-title-sm">¿Cada cuánto recibes tu dinero?</h2>
+              </>
+            )}
+            <p className="modal-sub">Elige y empieza en segundos. Podrás cambiarlo después sin perder nada.</p>
             <div className="mode-grid">
               {MODES.map((m) => {
                 const Icon = MODE_ICON[m.id];
@@ -197,7 +177,12 @@ export const ModeSelector = ({ onConfirm, isChanging, savedSalaryFor, currentMod
                 );
               })}
             </div>
-            {!isChanging && <StepDots current={0} total={2} />}
+            {!isChanging && (
+              <>
+                <StepDots current={0} total={2} />
+                <p className="trust-line">Sin cuentas · Tus datos se quedan en tu dispositivo · Funciona sin conexión</p>
+              </>
+            )}
             {isChanging && onClose && (
               <div className="modal-actions">
                 <button type="button" className="btn-ghost" onClick={onClose}>

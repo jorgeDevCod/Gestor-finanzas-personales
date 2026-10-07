@@ -39,14 +39,13 @@ MoneyRow { id, name, amount: string, paymentType: efectivo|debito|credito|transf
 
 ## 2. Flujos de usuario
 
-### F0 — Primer arranque (onboarding)
+### F0 — Primer arranque (onboarding en 1 pantalla)
 
-1. `appMode === null` → `ModeSelector` a pantalla completa, **paso 0 bienvenida**: emblema + "Tus finanzas, bajo control" + 3 garantías (sin cuentas, datos en el dispositivo, offline) + CTA "Empezar".
-2. **Paso 1 de 2** "¿Cada cuánto recibes tu dinero?": Hoy (Recomendado) / Quincena / Mes. Hoy → `onConfirm('daily', 0)` directo, sin pedir montos.
-3. Quincena o Mes sin monto → **paso 2 de 2**: salario (`> 0`, Enter confirma) con nota de uso; con monto ya registrado entra directo.
-4. `confirmMode` guarda `gfp:mode` (+ salario por modo) y muestra toast de bienvenida.
-5. Si no hay días, aparece el estado vacío que guía a `Hoy` / `Fecha`.
-6. Al cambiar de modo (⚙) o editar salario nunca se muestra la bienvenida (`initialOnboardingStep`).
+1. `appMode === null` → `ModeSelector`: cabecera de bienvenida compacta (emblema + "Tus finanzas, bajo control") + pregunta "¿Cada cuánto recibes tu dinero?" + 3 modos. **Hoy = 1 toque** hasta entrar.
+2. Hoy → `onConfirm('daily', 0)` directo, sin pedir montos. Quincena/Mes sin monto → paso 2 de 2 con salario (`> 0`); con monto ya registrado entra directo.
+3. `confirmMode` guarda `gfp:mode` (+ salario por modo) y muestra toast de bienvenida.
+4. Si no hay días, el estado vacío guía a `Hoy` / `Fecha`.
+5. Al cambiar de modo (⚙) o editar salario nunca hay bienvenida (`initialOnboardingStep`).
 
 ### F1 — Cambio de modo (⚙ Cambiar modo)
 

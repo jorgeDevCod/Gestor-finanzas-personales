@@ -9,14 +9,14 @@ export const needsSalaryStep = (mode: AppMode, savedSalary: number): boolean =>
   (mode === 'biweekly' || mode === 'monthly') && !(savedSalary > 0);
 
 /**
- * Paso inicial del asistente: 0 bienvenida (primer arranque),
- * 1 selector (al cambiar de modo), 2 monto (edición directa de salario).
+ * Paso inicial del asistente: 1 selector (primer arranque y cambio de modo),
+ * 2 monto (edición directa de salario). Sin pantallas extra: la bienvenida
+ * vive dentro del selector para llegar al valor en un toque.
  */
 export const initialOnboardingStep = (opts: {
   isChanging: boolean;
   editingSalary: boolean;
-}): 0 | 1 | 2 => {
+}): 1 | 2 => {
   if (opts.editingSalary) return 2;
-  if (opts.isChanging) return 1;
-  return 0;
+  return 1;
 };
