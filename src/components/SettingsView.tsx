@@ -45,7 +45,7 @@ export const SettingsView = ({
   <div className="settings">
     <section aria-label="General">
       <p className="set-section-title">General</p>
-      <button type="button" className="set-row" onClick={onOpenModePicker}>
+      <button type="button" className="set-row" data-guide="set-modo" onClick={onOpenModePicker}>
         <span className="set-icon" aria-hidden="true">
           <Wallet size={18} />
         </span>
@@ -55,7 +55,7 @@ export const SettingsView = ({
         </span>
         <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
       </button>
-      <button type="button" className="set-row" onClick={onToggleTheme} aria-label={`Cambiar a tema ${theme === 'light' ? 'oscuro' : 'claro'}`}>
+      <button type="button" className="set-row" data-guide="set-apariencia" onClick={onToggleTheme} aria-label={`Cambiar a tema ${theme === 'light' ? 'oscuro' : 'claro'}`}>
         <span className="set-icon" aria-hidden="true">
           {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
         </span>
@@ -66,7 +66,7 @@ export const SettingsView = ({
         <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
       </button>
       {canInstall && (
-        <button type="button" className="set-row" onClick={onInstall}>
+        <button type="button" className="set-row" data-guide="set-instalar" onClick={onInstall}>
           <span className="set-icon" aria-hidden="true">
             <Download size={18} />
           </span>
@@ -77,7 +77,7 @@ export const SettingsView = ({
           <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
         </button>
       )}
-      <button type="button" className="set-row" onClick={onOpenCategories}>
+      <button type="button" className="set-row" data-guide="set-categorias" onClick={onOpenCategories}>
         <span className="set-icon" aria-hidden="true">
           <Tags size={18} />
         </span>
@@ -87,7 +87,7 @@ export const SettingsView = ({
         </span>
         <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
       </button>
-      <button type="button" className="set-row" onClick={onOpenGuide}>
+      <button type="button" className="set-row" data-guide="set-guia" onClick={onOpenGuide}>
         <span className="set-icon" aria-hidden="true">
           <CircleHelp size={18} />
         </span>
@@ -101,7 +101,7 @@ export const SettingsView = ({
 
     <section aria-label="Datos">
       <p className="set-section-title">Datos</p>
-      <button type="button" className="set-row" disabled={!hasDays} onClick={onExportTxt}>
+      <button type="button" className="set-row" data-guide="set-export-txt" disabled={!hasDays} onClick={onExportTxt}>
         <span className="set-icon" aria-hidden="true">
           <FileText size={18} />
         </span>
@@ -111,7 +111,7 @@ export const SettingsView = ({
         </span>
         <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
       </button>
-      <button type="button" className="set-row" disabled={!hasDays} onClick={onExportXls}>
+      <button type="button" className="set-row" data-guide="set-export-xls" disabled={!hasDays} onClick={onExportXls}>
         <span className="set-icon" aria-hidden="true">
           <FileSpreadsheet size={18} />
         </span>
@@ -122,7 +122,7 @@ export const SettingsView = ({
         <ChevronRight size={16} aria-hidden="true" className="set-chevron" />
       </button>
       {hasDays && (
-        <button type="button" className="set-row set-row-danger" onClick={onClearRequest}>
+        <button type="button" className="set-row set-row-danger" data-guide="set-borrar" onClick={onClearRequest}>
           <span className="set-icon" aria-hidden="true">
             <Trash2 size={18} />
           </span>

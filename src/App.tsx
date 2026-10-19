@@ -15,6 +15,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { AppMode, AppView, Category, MoneyRow } from './types/finance';
+import { useTour } from './hooks/useTour';
 import { useTheme } from './hooks/useTheme';
 import { useFinance, type Notice } from './hooks/useFinance';
 import { usePwaInstall } from './hooks/usePwaInstall';
@@ -33,7 +34,9 @@ import { ModeSelector } from './components/ModeSelector';
 import { SettingsView } from './components/SettingsView';
 import { TabBar } from './components/TabBar';
 import { AmountModal, ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
-import { GuideModal } from './components/GuideModal';
+import { GuideIndex } from './components/GuideIndex';
+import { GuideHint } from './components/GuideHint';
+import { TourOverlay } from './components/TourOverlay';
 import type { DayEntry } from './types/finance';
 
 interface RegisterModalHostProps {
@@ -113,7 +116,7 @@ const MovementGroup = ({ title, tone, rows, categories, emptyText, onEdit, onDel
       {rows.length === 0 ? (
         <p className="mov-empty">{emptyText}</p>
       ) : (
-        <ul className="mov-list">
+        <ul className="mov-list" data-guide="mov-list">
           {rows.map((row) => {
             const catName = resolveCategory(categories, row.categoryId)?.name;
             return (
@@ -253,17 +256,19 @@ const App = () => {
     setMovModal({ dayId: id, kind: 'expense' });
   }, [createDay, days]);
 
-  const [showGuide, setShowGuide] = useState(false);
+  const [showIndex, setShowIndex] = useState(false);
 
-  // Guía automática una sola vez, tras completar el onboarding.
+  /** Recorrido guiado (coachmark) con spotlight sobre el elemento real. */
+  const tour = useTour(view, changeView);
+
+  // Recorrido automático una sola vez, tras completar el onboarding.
   useEffect(() => {
-    if (appMode && !hasSeenGuide()) setShowGuide(true);
+    if (appMode && !hasSeenGuide()) {
+      markGuideSeen();
+      tour.start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appMode]);
-
-  const closeGuide = useCallback(() => {
-    markGuideSeen();
-    setShowGuide(false);
-  }, []);
 
   /** Métricas del alcance visible (período, o todo en Daily). */
   const metricScope = isDaily ? days : periodDays;
@@ -332,6 +337,7 @@ const App = () => {
               <button
                 type="button"
                 className="install-btn"
+                data-guide="topbar-install"
                 onClick={handleInstall}
                 aria-label="Instalar la aplicación en tu dispositivo"
                 title="Instalar app"
@@ -343,7 +349,8 @@ const App = () => {
             <button
               type="button"
               className="icon-btn"
-              onClick={() => setShowGuide(true)}
+              data-guide="topbar-help"
+              onClick={() => setShowIndex(true)}
               aria-label="Ver la guía de uso"
               title="Guía de uso"
             >
@@ -352,6 +359,7 @@ const App = () => {
             <button
               type="button"
               className="icon-btn"
+              data-guide="topbar-theme"
               onClick={toggle}
               aria-label={theme === 'light' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
               aria-pressed={theme === 'dark'}
@@ -413,11 +421,11 @@ const App = () => {
         {appMode && view === 'movimientos' && (
           <>
             <div className="toolbar" role="toolbar" aria-label="Acciones de registro">
-              <button type="button" className="btn-lime" onClick={addToday}>
+              <button type="button" className="btn-lime" data-guide="toolbar-hoy" onClick={addToday}>
                 <CalendarPlus size={15} aria-hidden="true" />
                 Hoy
               </button>
-              <button type="button" className="btn-secondary" onClick={() => setShowDateModal(true)}>
+              <button type="button" className="btn-secondary" data-guide="toolbar-fecha" onClick={() => setShowDateModal(true)}>
                 <Plus size={15} aria-hidden="true" />
                 Fecha
               </button>
@@ -441,7 +449,7 @@ const App = () => {
             const dayPositive = t.netBalance >= 0;
             return (
               <article key={day.id} className={`day-card ${open ? 'day-open' : ''}`}>
-                <div className="day-header">
+                <div className="day-header" data-guide="day-card">
                   <button
                     type="button"
                     className="day-toggle"
@@ -474,6 +482,7 @@ const App = () => {
                       <button
                         type="button"
                         className="cta-expense"
+                        data-guide="cta-gasto"
                         onClick={() => setMovModal({ dayId: day.id, kind: 'expense' })}
                       >
                         <MinusCircle size={16} aria-hidden="true" />
@@ -482,6 +491,7 @@ const App = () => {
                       <button
                         type="button"
                         className="cta-income"
+                        data-guide="cta-entrada"
                         onClick={() => setMovModal({ dayId: day.id, kind: 'income' })}
                       >
                         <CircleDollarSign size={16} aria-hidden="true" />
@@ -534,7 +544,7 @@ const App = () => {
             onExportTxt={handleExportTxt}
             onExportXls={handleExportXls}
             onOpenCategories={() => setShowCategories(true)}
-            onOpenGuide={() => setShowGuide(true)}
+            onOpenGuide={() => setShowIndex(true)}
             onClearRequest={() => setConfirmClear(true)}
           />
         )}
@@ -546,6 +556,7 @@ const App = () => {
         <button
           type="button"
           className="fab"
+          data-guide="fab"
           onClick={quickRegister}
           aria-label="Registrar movimiento de hoy"
           title="Registrar movimiento"
@@ -659,7 +670,20 @@ const App = () => {
         onCancel={() => setConfirmClear(false)}
       />
       <Toasts notices={notices} />
-      <GuideModal open={showGuide} onClose={closeGuide} />
+      <TourOverlay tour={tour} />
+      <GuideHint disabled={tour.step !== null || showIndex} />
+      <GuideIndex
+        open={showIndex}
+        onClose={() => setShowIndex(false)}
+        onPick={(id) => {
+          setShowIndex(false);
+          tour.jumpTo(id);
+        }}
+        onStartTour={() => {
+          setShowIndex(false);
+          tour.start();
+        }}
+      />
     </div>
   );
 };

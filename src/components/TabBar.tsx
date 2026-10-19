@@ -14,7 +14,7 @@ const TABS: { id: AppView; label: string; Icon: typeof LayoutDashboard }[] = [
 
 /** Navegación inferior fija: una vista a la vez, sin rutas ni librerías. */
 export const TabBar = ({ view, onChange }: Props) => (
-  <nav className="tabbar" aria-label="Vistas principales">
+  <nav className="tabbar" data-guide="tabbar" aria-label="Vistas principales">
     {TABS.map(({ id, label, Icon }) => (
       <button
         key={id}

@@ -129,9 +129,17 @@ La app muestra **una vista a la vez** (`TabBar` inferior, `aria-current`, vista 
 3. **Ajustes**: modo actual (+ cambiar), apariencia, instalar app (si disponible), exportar TXT/Excel, categorías, guía "Cómo usar", borrar registros y nota de privacidad.
 4. Topbar aligerada (marca + Instalar + tema); modales y toasts funcionan desde cualquier vista.
 
-### F8c — Guía de uso (visual)
+### F8c — Guía de uso (coachmark con spotlight)
 
-`GuideModal`: tarjeta centrada con **miniatura de la opción** (mockup en CSS de la UI real), icono, título, texto breve, barra de progreso y navegación `Atrás / Siguiente` + `Saltar`. 13 pasos que cubren las 3 vistas (`src/utils/guideSteps.ts`, datos puros). Se muestra **una sola vez** tras el onboarding (flag `gfp:guide-seen`) y siempre desde el botón `?` de la topbar o Ajustes → "Cómo usar la app". Esc/←/→ funcionan; trampa de foco.
+**Catálogo único** (`src/utils/appGuide.ts`): 26 features con `id` (= `data-guide` del DOM), vista, título, texto concreto y colocación. De ahí salen los 3 accesos:
+
+1. **Índice** (botón `?` en topbar o Ajustes → "Cómo usar la app"): lista completa agrupada por vista, con buscador. Clic en una opción → spotlight directo a ella.
+2. **Recorrido guiado** (14 destacados): `TourOverlay` dibuja un **spotlight** sobre el elemento real (`box-shadow: 0 0 0 9999px` → perfora el fondo sin costuras), una **burbuja anclada** con flecha (`placeTooltip` prueba 4 colocaciones y clampa la flecha) y una **barra inferior** con progreso + Atrás/Siguiente. Salta de **vista automáticamente** si el paso pertenece a otra.
+3. **Pista al enfocar/pasar el mouse** por cualquier elemento con `data-guide` (`GuideHint`).
+
+Los features `optional` (instalar, borrar, exportar, métricas, breakdown, día abierto) **se omiten** si no existen en el estado actual. El recorrido arranca **una sola vez** tras el onboarding (flag `gfp:guide-seen`).
+
+Teclado: Esc cierra, ←/→ navegan, el foco va a la burbuja. `prefers-reduced-motion` respetado.
 
 ### F9 — Exportar (TXT / Excel)
 

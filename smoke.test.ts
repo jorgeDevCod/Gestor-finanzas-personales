@@ -24,7 +24,15 @@ import {
   streakDays,
 } from './src/utils/dashboard';
 import { hasSeenGuide, markGuideSeen } from './src/utils/storage';
-import { GUIDE_STEPS, GUIDE_SECTIONS } from './src/utils/guideSteps';
+import {
+  FEATURES,
+  GUIDE_VIEW_LABEL,
+  GUIDE_VIEW_ORDER,
+  featuresByView,
+  featureById,
+  tourFeatures,
+} from './src/utils/appGuide';
+import { placeTooltip, resolveAvailableSteps } from './src/utils/tourGeometry';
 import {
   loadInitialBalance,
   loadSalary,
@@ -410,12 +418,44 @@ check('guide seen', hasSeenGuide() === true);
 
 // guide: cobertura de pasos por sección (debe cubrir las 3 vistas)
 check('guide covers all views', (() => {
-  const sections = new Set(GUIDE_STEPS.map((s) => s.section));
-  return sections.size === 3 && GUIDE_STEPS.length >= 10;
+  const sections = new Set(FEATURES.map((s) => s.view));
+  return sections.size === 4 && FEATURES.length >= 20;
 })());
-check('guide steps unique', new Set(GUIDE_STEPS.map((s) => s.id)).size === GUIDE_STEPS.length);
-check('guide steps have text', GUIDE_STEPS.every((s) => s.title.length > 0 && s.text.length > 10));
-check('guide sections labeled', GUIDE_SECTIONS.resumen === 'Resumen' && GUIDE_SECTIONS.movimientos === 'Movimientos' && GUIDE_SECTIONS.ajustes === 'Ajustes');
+check('guide steps unique', new Set(FEATURES.map((s) => s.id)).size === FEATURES.length);
+check('guide steps have text', FEATURES.every((s) => s.title.length > 0 && s.text.length > 10));
+check('guide sections labeled', GUIDE_VIEW_LABEL.resumen === 'Resumen' && GUIDE_VIEW_LABEL.ajustes === 'Ajustes');
+check('guide tour subset', (() => {
+  const t = tourFeatures();
+  return t.length === 14 && t.every((f) => FEATURES.includes(f));
+})());
+check('guide by view', featuresByView('ajustes').length === 8 && featuresByView('resumen').length === 7);
+check('guide feature lookup', featureById('fab')?.view === 'resumen' && featureById('nope') === undefined);
+check('guide view order', GUIDE_VIEW_ORDER.join(',') === 'global,resumen,movimientos,ajustes');
+
+// tour geometry: la burbuja nunca se sale del viewport
+const vp = { w: 400, h: 800 };
+const tip = { w: 300, h: 150 };
+const centerTarget = { top: 300, left: 100, width: 200, height: 60 };
+const pTop = placeTooltip(centerTarget, tip, vp, 'top');
+check('tooltip keeps preferred', pTop.placement === 'top' && pTop.top === 300 - 14 - 150);
+check('tooltip inside viewport', pTop.left >= 8 && pTop.left + tip.w <= vp.w - 8 && pTop.top >= 8);
+check('tooltip arrow inside', pTop.arrow >= 16 && pTop.arrow <= tip.w - 16);
+const nearTop = { top: 4, left: 100, width: 200, height: 60 };
+check('tooltip flips when no room', placeTooltip(nearTop, tip, vp, 'top').placement === 'bottom');
+const nearLeft = { top: 300, left: 2, width: 40, height: 60 };
+check('tooltip flips left', placeTooltip(nearLeft, tip, vp, 'left').placement === 'right');
+const nearBottom = { top: 700, left: 100, width: 200, height: 60 };
+check('tooltip flips bottom', placeTooltip(nearBottom, tip, vp, 'bottom').placement === 'top');
+const hugeTarget = { top: 10, left: 10, width: 380, height: 780 };
+const pCenter = placeTooltip(hugeTarget, tip, vp, 'top');
+check('tooltip centers when nothing fits', pCenter.placement === 'center');
+check('tooltip center inside viewport', pCenter.left >= 8 && pCenter.left + tip.w <= vp.w - 8);
+
+// resolveAvailableSteps: omite los opcionales que no existen
+const avail = resolveAvailableSteps(FEATURES, (id) => id !== 'set-borrar' && id !== 'topbar-install');
+check('optional missing skipped', !avail.some((f) => f.id === 'set-borrar') && !avail.some((f) => f.id === 'topbar-install'));
+check('mandatory kept', avail.some((f) => f.id === 'topbar-help') && avail.length === FEATURES.length - 2);
+check('fab is mandatory', featureById('fab')?.optional !== true);
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

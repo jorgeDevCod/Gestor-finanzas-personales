@@ -60,7 +60,7 @@ export const BalanceOverview = ({
             {isDaily ? formatLong(period.startISO) : period.range}
           </p>
         </div>
-        <div className="balance-actions">
+        <div className="balance-actions" data-guide="balance-actions">
           <button
             type="button"
             className="btn-ghost btn-sm"
@@ -86,7 +86,7 @@ export const BalanceOverview = ({
         </div>
       </div>
 
-      <p className={`balance-total ${positive ? 'txt-pos' : 'txt-expense'}`}>
+      <p className={`balance-total ${positive ? 'txt-pos' : 'txt-expense'}`} data-guide="balance-total">
         {positive ? '' : '−'}${fmtMoney(Math.abs(balance.available))}
       </p>
       <p className="balance-sub">
@@ -102,6 +102,7 @@ export const BalanceOverview = ({
           <div
             className="progress"
             role="progressbar"
+            data-guide="balance-progress"
             aria-valuenow={balance.percentUsed}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -112,7 +113,7 @@ export const BalanceOverview = ({
         </>
       )}
 
-      <div className="balance-grid">
+      <div className="balance-grid" data-guide="balance-grid">
         <div>
           <p className="mini-label">{baseLabel}</p>
           <p className="mini-value">${fmtMoney(balance.base)}</p>
@@ -128,7 +129,7 @@ export const BalanceOverview = ({
       </div>
 
       {metrics.length > 0 && (
-        <div className="metrics-row" aria-live="polite" aria-label="Métricas del período">
+        <div className="metrics-row" data-guide="balance-metrics" aria-live="polite" aria-label="Métricas del período">
           {metrics.map((m) => (
             <div key={m.label} className="metric">
               <p className="mini-label">{m.label}</p>
@@ -160,7 +161,7 @@ export const BalanceOverview = ({
         </p>
       )}
 
-      <div className="cat-breakdown">
+      <div className="cat-breakdown" data-guide="balance-breakdown">
         <p className="mini-label">En qué se va tu dinero</p>
         {breakdown.length === 0 ? (
           <p className="mov-empty">Categoriza tus gastos para ver en qué se va tu dinero.</p>

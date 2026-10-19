@@ -43,17 +43,22 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── utils/constants.ts      # MODE_CONFIG, PAYMENT_OPTIONS, paymentLabel
     ├── utils/exportUtils.ts    # exportToTextFile + exportToExcel (2 hojas), revokeObjectURL
     ├── hooks/useTheme.ts       # default light, <html data-theme>, persiste gfp:theme
+    ├── hooks/useTour.ts        # coachmark: paso actual, rect del elemento, salto de vista
     ├── hooks/usePwaInstall.ts  # beforeinstallprompt/appinstalled/standalone/iOS → visible + install()
     ├── hooks/useFinance.ts     # días, modo, salarios, saldo inicial, categorías + period/periodTotals/todayTotals (derivados)
     ├── types/finance.ts        # AppMode, AppView, PaymentType, MoneyRow (+categoryId?), DayEntry, Category, Theme, guards, uid
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
     ├── utils/categories.ts       # normalizeKey, cleanName, add/rename/remove, resolveCategory, summarizeByCategory, seed (puras)
     ├── utils/dashboard.ts        # avgDailyExpense, projectedSpend, streakDays, distinctDates (puras)
-    ├── utils/guideSteps.ts       # 13 pasos de la guía (id, sección, título, texto) puros y testeados
+    ├── utils/appGuide.ts         # catálogo de 26 features (id, vista, título, texto) — fuente de verdad
+    ├── utils/tourGeometry.ts     # placeTooltip (posiciona la burbuja) + resolveAvailableSteps (puros)
+    ├── hooks/useTour.ts          # estado del recorrido: mide el DOM, salta de vista, scroll/resize
     ├── utils/modeFlow.ts         # needsSalaryStep + initialOnboardingStep (puras, testeadas)
     └── components/
         ├── TabBar.tsx            # nav inferior: Resumen / Movimientos / Ajustes (sin rutas)
-        ├── GuideModal.tsx        # guía visual: tarjeta por opción (miniatura + progreso + navegación)
+        ├── TourOverlay.tsx       # coachmark: spotlight + burbuja anclada + barra de control
+        ├── GuideIndex.tsx        # índice: catálogo completo de la app (buscable, agrupado)
+        ├── GuideHint.tsx         # pista flotante al enfocar/pasar el mouse por un elemento
         ├── SettingsView.tsx      # modo, apariencia, instalar, exportar, categorías, guía, borrar
         ├── ModeSelector.tsx      # asistente 1 pantalla (bienvenida+modos) → monto solo si falta; trap de foco
         ├── BalanceOverview.tsx # balance del período (o caja Daily) + "En qué se va tu dinero" por categoría

@@ -13,7 +13,7 @@ export const DaySummary = ({ day, mode }: Props) => {
   const incomeLabel = mode === 'daily' ? 'Ingresos' : 'Ingresos extra';
 
   return (
-    <div className="day-summary">
+    <div className="day-summary" data-guide="day-summary">
       <div className="stat-grid">
         <div className="stat-card-income">
           <p className="stat-label stat-label-income">{incomeLabel}</p>
