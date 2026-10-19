@@ -129,9 +129,9 @@ La app muestra **una vista a la vez** (`TabBar` inferior, `aria-current`, vista 
 3. **Ajustes**: modo actual (+ cambiar), apariencia, instalar app (si disponible), exportar TXT/Excel, categorías, guía "Cómo usar", borrar registros y nota de privacidad.
 4. Topbar aligerada (marca + Instalar + tema); modales y toasts funcionan desde cualquier vista.
 
-### F8c — Guía de uso
+### F8c — Guía de uso (visual)
 
-`GuideModal` (3 pasos: toca `+` y anota / elige modo / mira tu disponible): aparece **una sola vez** tras el onboarding (flag `gfp:guide-seen`) y siempre disponible en Ajustes → "Cómo usar la app". Trampa de foco, Esc la cierra, nunca bloquea.
+`GuideModal`: tarjeta centrada con **miniatura de la opción** (mockup en CSS de la UI real), icono, título, texto breve, barra de progreso y navegación `Atrás / Siguiente` + `Saltar`. 13 pasos que cubren las 3 vistas (`src/utils/guideSteps.ts`, datos puros). Se muestra **una sola vez** tras el onboarding (flag `gfp:guide-seen`) y siempre desde el botón `?` de la topbar o Ajustes → "Cómo usar la app". Esc/←/→ funcionan; trampa de foco.
 
 ### F9 — Exportar (TXT / Excel)
 

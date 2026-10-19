@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
+  CircleHelp,
   Download,
   MinusCircle,
   Moon,
@@ -342,6 +343,15 @@ const App = () => {
             <button
               type="button"
               className="icon-btn"
+              onClick={() => setShowGuide(true)}
+              aria-label="Ver la guía de uso"
+              title="Guía de uso"
+            >
+              <CircleHelp size={17} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
               onClick={toggle}
               aria-label={theme === 'light' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
               aria-pressed={theme === 'dark'}
@@ -543,7 +553,6 @@ const App = () => {
           <Plus size={24} aria-hidden="true" />
         </button>
       )}
-      <GuideModal open={showGuide} onClose={closeGuide} />
 
       {/* ── Modales y avisos (sin alert/confirm nativos) ── */}
       {(needsOnboarding || showModeSelector) && (

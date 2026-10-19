@@ -24,6 +24,7 @@ import {
   streakDays,
 } from './src/utils/dashboard';
 import { hasSeenGuide, markGuideSeen } from './src/utils/storage';
+import { GUIDE_STEPS, GUIDE_SECTIONS } from './src/utils/guideSteps';
 import {
   loadInitialBalance,
   loadSalary,
@@ -406,6 +407,15 @@ memStore.delete('gfp:guide-seen');
 check('guide unseen', hasSeenGuide() === false);
 markGuideSeen();
 check('guide seen', hasSeenGuide() === true);
+
+// guide: cobertura de pasos por sección (debe cubrir las 3 vistas)
+check('guide covers all views', (() => {
+  const sections = new Set(GUIDE_STEPS.map((s) => s.section));
+  return sections.size === 3 && GUIDE_STEPS.length >= 10;
+})());
+check('guide steps unique', new Set(GUIDE_STEPS.map((s) => s.id)).size === GUIDE_STEPS.length);
+check('guide steps have text', GUIDE_STEPS.every((s) => s.title.length > 0 && s.text.length > 10));
+check('guide sections labeled', GUIDE_SECTIONS.resumen === 'Resumen' && GUIDE_SECTIONS.movimientos === 'Movimientos' && GUIDE_SECTIONS.ajustes === 'Ajustes');
 
 if (failures > 0) {
   console.error(`${failures} FALLAS`);

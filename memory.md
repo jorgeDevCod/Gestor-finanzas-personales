@@ -49,9 +49,11 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── utils/movements.ts        # validateMovement, buildMovement, upsertMovement, removeMovement (puras, testeadas)
     ├── utils/categories.ts       # normalizeKey, cleanName, add/rename/remove, resolveCategory, summarizeByCategory, seed (puras)
     ├── utils/dashboard.ts        # avgDailyExpense, projectedSpend, streakDays, distinctDates (puras)
+    ├── utils/guideSteps.ts       # 13 pasos de la guía (id, sección, título, texto) puros y testeados
     ├── utils/modeFlow.ts         # needsSalaryStep + initialOnboardingStep (puras, testeadas)
     └── components/
         ├── TabBar.tsx            # nav inferior: Resumen / Movimientos / Ajustes (sin rutas)
+        ├── GuideModal.tsx        # guía visual: tarjeta por opción (miniatura + progreso + navegación)
         ├── SettingsView.tsx      # modo, apariencia, instalar, exportar, categorías, guía, borrar
         ├── ModeSelector.tsx      # asistente 1 pantalla (bienvenida+modos) → monto solo si falta; trap de foco
         ├── BalanceOverview.tsx # balance del período (o caja Daily) + "En qué se va tu dinero" por categoría

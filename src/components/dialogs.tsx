@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import {
-  CalendarDays,
   Check,
   CircleDollarSign,
   MinusCircle,
@@ -19,8 +18,8 @@ import { PAYMENT_OPTIONS } from '../utils/constants';
 import { todayISO } from '../utils/dates';
 
 /**
- * Trampa de foco mínima para modales: cicla Tab dentro del contenedor
- * y devuelve el foco al elemento que abrió al cerrar. No roba el foco
+ * Trampa de foco mÃ­nima para modales: cicla Tab dentro del contenedor
+ * y devuelve el foco al elemento que abriÃ³ al cerrar. No roba el foco
  * inicial (los inputs usan autoFocus), solo lo contiene y lo retorna.
  */
 export const useFocusTrap = (active: boolean) => {
@@ -79,7 +78,7 @@ interface ConfirmProps {
   onCancel: () => void;
 }
 
-/** Confirmación accesible (sustituye window.confirm). */
+/** ConfirmaciÃ³n accesible (sustituye window.confirm). */
 export const ConfirmDialog = ({ open, title, message, confirmLabel, onConfirm, onCancel }: ConfirmProps) => {
   useEffect(() => {
     if (!open) return;
@@ -117,7 +116,7 @@ interface DateModalProps {
   onClose: () => void;
 }
 
-/** Selector de fecha para crear un día (valida en el hook, sin alert). */
+/** Selector de fecha para crear un dÃ­a (valida en el hook, sin alert). */
 export const DateModal = ({ open, onConfirm, onClose }: DateModalProps) => {
   const [value, setValue] = useState(todayISO());
 
@@ -161,13 +160,13 @@ interface RegisterModalProps {
   open: boolean;
   dayLabel: string;
   kind: MovementKind;
-  /** Solo creación: permite alternar gasto/entrada. En edición va fijo. */
+  /** Solo creaciÃ³n: permite alternar gasto/entrada. En ediciÃ³n va fijo. */
   allowKindChange: boolean;
   isEditing: boolean;
   initial: MovementInput;
   incomeLabel: string;
   categories: Category[];
-  /** Crea (o reutiliza) y retorna la categoría, o null si se rechazó. */
+  /** Crea (o reutiliza) y retorna la categorÃ­a, o null si se rechazÃ³. */
   onAddCategory: (kind: CategoryKind, name: string) => Category | null;
   onManageCategories: () => void;
   onKindChange: (kind: MovementKind) => void;
@@ -175,7 +174,7 @@ interface RegisterModalProps {
   onClose: () => void;
 }
 
-/** Formulario de registro/edición de un movimiento (gasto o entrada). */
+/** Formulario de registro/ediciÃ³n de un movimiento (gasto o entrada). */
 export const RegisterModal = ({
   open,
   dayLabel,
@@ -226,7 +225,7 @@ export const RegisterModal = ({
   const isIncome = kind === 'income';
   const catKind: CategoryKind = isIncome ? 'income' : 'expense';
   const catOptions = categories.filter((c) => c.kind === catKind);
-  // Huérfano (categoría eliminada) → se muestra "Sin categoría".
+  // HuÃ©rfano (categorÃ­a eliminada) â†’ se muestra "Sin categorÃ­a".
   const selectValue = catOptions.some((c) => c.id === categoryId) ? categoryId : '';
 
   const submit = () => {
@@ -260,7 +259,7 @@ export const RegisterModal = ({
 
   const confirmCreator = () => {
     const created = onAddCategory(catKind, creatorName);
-    // null = rechazado (vacío o tope): el hook ya avisó, el creador sigue abierto.
+    // null = rechazado (vacÃ­o o tope): el hook ya avisÃ³, el creador sigue abierto.
     if (created) {
       setCategoryId(created.id);
       setShowCreator(false);
@@ -328,7 +327,7 @@ export const RegisterModal = ({
         )}
 
         <label className="form-label" htmlFor="mov-name">
-          Descripción <span className="form-optional">(opcional)</span>
+          DescripciÃ³n <span className="form-optional">(opcional)</span>
         </label>
         <input
           id="mov-name"
@@ -343,7 +342,7 @@ export const RegisterModal = ({
         <div className="form-grid-2col">
           <div>
             <label className="form-label" htmlFor="mov-pay">
-              Método de pago
+              MÃ©todo de pago
             </label>
             <select
               id="mov-pay"
@@ -361,7 +360,7 @@ export const RegisterModal = ({
           <div>
             <div className="form-row-between">
               <label className="form-label form-label-inline" htmlFor="mov-cat">
-                Categoría (opcional)
+                CategorÃ­a (opcional)
               </label>
               <button type="button" className="link-btn" onClick={onManageCategories}>
                 Gestionar
@@ -375,7 +374,7 @@ export const RegisterModal = ({
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="input-dark select-dark cat-select"
               >
-                <option value="">Sin categoría</option>
+                <option value="">Sin categorÃ­a</option>
                 {catOptions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -386,8 +385,8 @@ export const RegisterModal = ({
                 <button
                   type="button"
                   className="icon-btn-44"
-                  title="Nueva categoría"
-                  aria-label="Nueva categoría"
+                  title="Nueva categorÃ­a"
+                  aria-label="Nueva categorÃ­a"
                   onClick={() => {
                     setCreatorName('');
                     setShowCreator(true);
@@ -407,7 +406,7 @@ export const RegisterModal = ({
               onChange={(e) => setCreatorName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  // Crear la categoría; NUNCA guarda el movimiento.
+                  // Crear la categorÃ­a; NUNCA guarda el movimiento.
                   e.preventDefault();
                   e.stopPropagation();
                   confirmCreator();
@@ -417,16 +416,16 @@ export const RegisterModal = ({
                 }
               }}
               autoFocus
-              placeholder="Nombre de la categoría"
+              placeholder="Nombre de la categorÃ­a"
               maxLength={24}
-              aria-label="Nombre de la nueva categoría"
+              aria-label="Nombre de la nueva categorÃ­a"
               className="input-dark cat-creator-input"
             />
             <button
               type="button"
               className="icon-btn-44 icon-btn-confirm"
-              aria-label="Crear categoría"
-              title="Crear categoría"
+              aria-label="Crear categorÃ­a"
+              title="Crear categorÃ­a"
               onClick={confirmCreator}
             >
               <Check size={18} aria-hidden="true" />
@@ -434,7 +433,7 @@ export const RegisterModal = ({
             <button
               type="button"
               className="icon-btn-44"
-              aria-label="Cancelar nueva categoría"
+              aria-label="Cancelar nueva categorÃ­a"
               title="Cancelar"
               onClick={cancelCreator}
             >
@@ -472,7 +471,7 @@ interface AmountModalProps {
   onClose: () => void;
 }
 
-/** Editor genérico de un monto base (saldo inicial). Valida número finito ≥ 0. */
+/** Editor genÃ©rico de un monto base (saldo inicial). Valida nÃºmero finito â‰¥ 0. */
 export const AmountModal = ({
   open,
   title,
@@ -508,7 +507,7 @@ export const AmountModal = ({
   const submit = () => {
     const n = parseFloat(value);
     if (!Number.isFinite(n) || n < 0 || (!allowZero && n === 0)) {
-      setError(allowZero ? 'Ingresa un monto válido (0 o mayor).' : 'Ingresa un monto válido mayor a cero.');
+      setError(allowZero ? 'Ingresa un monto vÃ¡lido (0 o mayor).' : 'Ingresa un monto vÃ¡lido mayor a cero.');
       return;
     }
     onConfirm(n);
@@ -556,70 +555,6 @@ export const AmountModal = ({
             {confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
-  );
-};
-
-const GUIDE_STEPS: { Icon: typeof Plus; title: string; text: string }[] = [
-  {
-    Icon: Plus,
-    title: 'Toca + y anota',
-    text: 'Registra tu gasto o entrada con monto en segundos. Lo demás es opcional.',
-  },
-  {
-    Icon: CalendarDays,
-    title: 'Elige Hoy, Quincena o Mes',
-    text: 'Cada modo muestra solo lo de su período. Cambia cuando quieras sin perder nada.',
-  },
-  {
-    Icon: CircleDollarSign,
-    title: 'Mira cuánto te queda',
-    text: 'Tu disponible, el promedio diario y la proyección al cierre, siempre al día.',
-  },
-];
-
-/** Guía de uso en 3 pasos. Amable, breve y descartable (una vez + desde Ajustes). */
-export const GuideModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
-  const trapRef = useFocusTrap(open);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="guide-title">
-      <div className="modal-box" ref={trapRef}>
-        <p className="eyebrow">Aprende en 30 segundos</p>
-        <h2 id="guide-title" className="modal-title-sm">
-          ¿Cómo usar Mis Finanzas?
-        </h2>
-        <ol className="guide-steps">
-          {GUIDE_STEPS.map(({ Icon, title, text }, i) => (
-            <li key={title} className="guide-step">
-              <span className="guide-num" aria-hidden="true">
-                {i + 1}
-              </span>
-              <span className="guide-icon" aria-hidden="true">
-                <Icon size={18} />
-              </span>
-              <span className="guide-text">
-                <strong>{title}</strong>
-                <span>{text}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-        <button type="button" className="btn-lime btn-block" onClick={onClose}>
-          ¡Entendido!
-        </button>
       </div>
     </div>
   );
