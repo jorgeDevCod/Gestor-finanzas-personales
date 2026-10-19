@@ -31,7 +31,8 @@ import { DaySummary } from './components/DaySummary';
 import { ModeSelector } from './components/ModeSelector';
 import { SettingsView } from './components/SettingsView';
 import { TabBar } from './components/TabBar';
-import { AmountModal, ConfirmDialog, DateModal, GuideModal, RegisterModal, Toasts } from './components/dialogs';
+import { AmountModal, ConfirmDialog, DateModal, RegisterModal, Toasts } from './components/dialogs';
+import { GuideModal } from './components/GuideModal';
 import type { DayEntry } from './types/finance';
 
 interface RegisterModalHostProps {
@@ -649,6 +650,7 @@ const App = () => {
         onCancel={() => setConfirmClear(false)}
       />
       <Toasts notices={notices} />
+      <GuideModal open={showGuide} onClose={closeGuide} />
     </div>
   );
 };

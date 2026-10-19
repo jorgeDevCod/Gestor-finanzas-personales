@@ -1856,3 +1856,214 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ══ GUÍA DE USO (modales flotantes) ══ */
+.guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.guide-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 12, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 201;
+}
+
+.guide-bubble {
+  position: fixed;
+  z-index: 202;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 18px;
+  min-width: 260px;
+  max-width: 340px;
+  box-shadow: var(--shadow-card);
+  animation: guide-fade-in 0.25s ease;
+}
+
+.guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.guide-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.guide-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-ter);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.guide-close:hover {
+  background: var(--color-surface2);
+  color: var(--color-text);
+}
+
+.guide-body p {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  color: var(--color-text-sec);
+  line-height: 1.55;
+}
+
+.guide-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guide-counter {
+  font-size: 12px;
+  color: var(--color-text-ter);
+}
+
+.guide-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.guide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border-radius: 11px;
+  border: none;
+  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  cursor: pointer;
+  padding: 10px 16px;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.guide-btn-primary {
+  background: var(--color-lime);
+  color: #fff;
+}
+
+:root[data-theme='dark'] .guide-btn-primary {
+  color: #06130e;
+}
+
+.guide-btn-outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-sec);
+}
+
+.guide-btn-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.guide-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+@keyframes guide-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Resaltado del elemento objetivo */
+.guide-highlight {
+  position: fixed;
+  z-index: 201;
+  border: 2px solid var(--color-lime);
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(124, 196, 162, 0.25);
+}
+
+:root[data-theme='dark'] .guide-highlight {
+  box-shadow: 0 0 0 3px rgba(124, 196, 162, 0.35);
+}
+
+/* Posicionamiento de la flecha del globo */
+.guide-bubble[data-pos='top']::after,
+.guide-bubble[data-pos='bottom']::after,
+.guide-bubble[data-pos='left']::after,
+.guide-bubble[data-pos='right']::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  z-index: -1;
+}
+
+.guide-bubble[data-pos='top']::after {
+  top: 100%;
+  left: 16px;
+  border-top: none;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--color-border);
+  transform: translateX(-50%);
+}
+
+.guide-bubble[data-pos='bottom']::after {
+  bottom: 100%;
+  left: 16px;
+  border-bottom: none;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--color-border);
+  transform: translateX(-50%);
+}
+
+.guide-bubble[data-pos='left']::after {
+  left: 100%;
+  top: 16px;
+  border-left: none;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 6px solid var(--color-border);
+  transform: translateY(-50%);
+}
+
+.guide-bubble[data-pos='right']::after {
+  right: 100%;
+  top: 16px;
+  border-right: none;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid var(--color-border);
+  transform: translateY(-50%);
+}
