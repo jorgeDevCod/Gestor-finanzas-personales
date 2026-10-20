@@ -371,6 +371,8 @@ const App = () => {
         </div>
       </header>
 
+      {appMode && <TabBar view={view} onChange={changeView} />}
+
       <main className="tool-main">
         {appMode && view === 'resumen' && (
           <>
@@ -550,8 +552,6 @@ const App = () => {
         )}
       </main>
 
-      {appMode && <TabBar view={view} onChange={changeView} />}
-
       {appMode && (
         <button
           type="button"
@@ -564,7 +564,6 @@ const App = () => {
           <Plus size={24} aria-hidden="true" />
         </button>
       )}
-
       {/* ── Modales y avisos (sin alert/confirm nativos) ── */}
       {(needsOnboarding || showModeSelector) && (
         <ModeSelector

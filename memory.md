@@ -55,7 +55,7 @@ PWA **React 18 + TypeScript estricto + Vite 6 + Tailwind 3**, instalable y offli
     ├── hooks/useTour.ts          # estado del recorrido: mide el DOM, salta de vista, scroll/resize
     ├── utils/modeFlow.ts         # needsSalaryStep + initialOnboardingStep (puras, testeadas)
     └── components/
-        ├── TabBar.tsx            # nav inferior: Resumen / Movimientos / Ajustes (sin rutas)
+        ├── TabBar.tsx            # nav: abajo en móvil/tablet (<1100px), arriba en desktop (sticky, ancho del contenedor)
         ├── TourOverlay.tsx       # coachmark: spotlight + burbuja anclada + barra de control
         ├── GuideIndex.tsx        # índice: catálogo completo de la app (buscable, agrupado)
         ├── GuideHint.tsx         # pista flotante al enfocar/pasar el mouse por un elemento

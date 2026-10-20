@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Altura de la barra superior (topbar) para los offsets sticky. */
+  --topbar-h: 65px;
+  /* Punto de corte: la navegación va abajo en móvil/tablet y arriba en desktop. */
+  --bp-desktop: 1100px;
+}
+
 /* ══ TEMA CLARO (por defecto) ══ */
 :root,
 :root[data-theme='light'] {
@@ -1572,6 +1579,59 @@ body {
   border-radius: 99px;
   margin: 2px auto 0;
   background: currentColor;
+}
+
+/* ══ DESKTOP: navegación arriba, del ancho del contenedor ══ */
+@media (min-width: 1100px) {
+  .tabbar {
+    position: sticky;
+    top: var(--topbar-h);
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 8px 10px;
+    gap: 6px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0 0 16px 16px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .tab-item {
+    flex-direction: row;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 13.5px;
+    border-radius: 10px;
+  }
+
+  .tab-item:hover {
+    background: var(--color-surface2);
+  }
+
+  .tab-active {
+    background: var(--color-surface2);
+  }
+
+  .tab-active span::after {
+    display: none;
+  }
+
+  /* Ya no hay barra inferior: el FAB y la barra del tour suben. */
+  .fab {
+    bottom: 28px;
+  }
+
+  .tour-bar {
+    bottom: 28px;
+  }
+
+  .tool-main {
+    padding-bottom: 110px;
+  }
 }
 
 /* ══ VISTA AJUSTES ══ */

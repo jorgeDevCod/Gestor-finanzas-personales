@@ -70,7 +70,8 @@ export const FEATURES: FeatureDoc[] = [
     label: 'Navegación',
     title: 'Tres áreas, una app',
     text: 'Resumen para ver tu dinero, Movimientos para registrar y Ajustes para configurar. Solo una vista abierta a la vez.',
-    placement: 'top',
+    // Abajo en desktop (barra superior) y se voltea sola arriba en móvil.
+    placement: 'bottom',
     highlight: true,
   },
 
